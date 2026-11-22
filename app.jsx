@@ -4,13 +4,17 @@ const W = 1280, H = 720;
 const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
 
 const SLIDE_THEMES = {
-  navy: { name: 'Navy dan teal', paper: '#f7f9fc', ink: '#1f2a3d', muted: '#5b6680', grid: '#dfe3ea', axis: '#b4b2a9', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#EF9F27', targetText: '#a86a0a' },
+  langit: { name: 'Langit', paper: '#e8f1f8', ink: '#13243a', muted: '#5d7288', grid: '#cfdeeb', axis: '#a9bfd3', header: '#dbe7f1', headerFg: '#13243a', headerSub: '#5d7288', cover: '#e8f1f8', coverFg: '#13243a', coverSub: '#2f6fed', coverMuted: '#5d7288', accent: '#2f6fed', bars: ['#a9c4f7', '#2f6fed', '#a9c4f7'], target: '#e08a1e', targetText: '#b3690d', card: '#ffffff' },
+  lautan: { name: 'Lautan', paper: '#0f2f3a', ink: '#eaf4f4', muted: '#8fb3b8', grid: '#25505e', axis: '#3b6a78', header: '#0a2630', headerFg: '#ffffff', headerSub: '#8fd8c4', cover: '#0f2f3a', coverFg: '#ffffff', coverSub: '#8fd8c4', coverMuted: '#8fb3b8', accent: '#5ad1b0', bars: ['#2e7f78', '#5ad1b0', '#2e7f78'], target: '#f2b45a', targetText: '#f2b45a', card: 'rgba(255,255,255,0.06)' },
+  malam: { name: 'Malam ungu', paper: '#1c1a33', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: '#15132a', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#1c1a33', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffbe6b', targetText: '#ffbe6b', card: 'rgba(255,255,255,0.06)' },
+  pasir: { name: 'Pasir', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#e3d6c4', axis: '#c9b9a3', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3' },
+  navyteal: { name: 'Navy dan teal', paper: '#f7f9fc', ink: '#1f2a3d', muted: '#5b6680', grid: '#dfe3ea', axis: '#b4b2a9', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#EF9F27', targetText: '#a86a0a' },
   remotion: { name: 'Remotion gelap', paper: '#1b1f24', ink: '#f2f4f7', muted: '#9aa4b2', grid: '#2c3238', axis: '#4a525b', header: '#0b84f3', headerFg: '#ffffff', headerSub: '#d6e9fd', cover: '#16191d', coverFg: '#ffffff', coverSub: '#5fb0f8', coverMuted: '#9aa4b2', accent: '#0b84f3', bars: ['#9fd0fb', '#0b84f3', '#0a5bb0'], target: '#f5b942', targetText: '#f5b942' },
   terang: { name: 'Putih bersih', paper: '#ffffff', ink: '#111827', muted: '#6b7280', grid: '#e5e7eb', axis: '#9ca3af', header: '#eef2f7', headerFg: '#111827', headerSub: '#4b5563', cover: '#ffffff', coverFg: '#111827', coverSub: '#2563eb', coverMuted: '#6b7280', accent: '#2563eb', bars: ['#bfdbfe', '#60a5fa', '#1d4ed8'], target: '#f59e0b', targetText: '#b45309' },
   ungu: { name: 'Ungu', paper: '#f8f7fd', ink: '#241c45', muted: '#6a6490', grid: '#e4e0f5', axis: '#b5aedb', header: '#2a1f5c', headerFg: '#ffffff', headerSub: '#cbbffc', cover: '#2a1f5c', coverFg: '#ffffff', coverSub: '#cbbffc', coverMuted: '#a99fda', accent: '#8b6cf7', bars: ['#d4c8ff', '#8b6cf7', '#5a3fd0'], target: '#EF9F27', targetText: '#a86a0a' },
   senja: { name: 'Senja', paper: '#fdf8f5', ink: '#3a1f17', muted: '#8a6a5e', grid: '#f0e1da', axis: '#d3b8ab', header: '#5a2418', headerFg: '#ffffff', headerSub: '#f7c4a5', cover: '#5a2418', coverFg: '#ffffff', coverSub: '#f7c4a5', coverMuted: '#d9a994', accent: '#e4693b', bars: ['#f7c4a5', '#e4693b', '#a43a1a'], target: '#1d6fb8', targetText: '#1d6fb8' },
 };
-const themeOf = (deck) => SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.navy;
+const themeOf = (deck) => SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const digits = (v) => String(v == null ? '' : v).replace(/\D/g, '');
@@ -59,7 +63,7 @@ function statsOf(sales, key, bid) {
 
 const DEFAULT = {
   version: 3,
-  slideTheme: 'navy',
+  slideTheme: 'langit',
   range: { from: '2026-10', to: '2026-12' },
   cover: { title: 'Laporan Penjualan', sub: 'Rancangan, angka menyusul', audience: 'Disajikan untuk HRD dan Manager' },
   closing: { title: 'Terima kasih', sub: 'Sesi tanya jawab' },
@@ -69,7 +73,7 @@ const DEFAULT = {
 /* Mengubah data versi lama (3 kolom bulan berupa teks, angka per produk) ke bentuk baru. */
 function migrate(d) {
   if (!d || !Array.isArray(d.sales) || !d.cover || !d.closing) return null;
-  if (d.version === 3 && d.range && d.range.from && d.range.to) return d;
+  if (d.version === 3 && d.range && d.range.from && d.range.to) return d.slideTheme === 'navy' ? { ...d, slideTheme: 'langit' } : d;
   const names = Array.isArray(d.months) ? d.months : [];
   const idxs = names.map((n) => BULAN.findIndex((b) => b.toLowerCase() === String(n || '').trim().toLowerCase()));
   const year = new Date().getFullYear();
@@ -80,7 +84,7 @@ function migrate(d) {
   }
   return {
     version: 3,
-    slideTheme: d.slideTheme || 'navy',
+    slideTheme: !d.slideTheme || d.slideTheme === 'navy' ? 'langit' : d.slideTheme,
     range: { from: keys[0], to: keys[keys.length - 1] },
     subline: d.subline != null ? d.subline : null,
     cover: d.cover,
