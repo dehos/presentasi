@@ -1,9 +1,8 @@
-/* Tampilan aplikasi memakai satu tema gelap bergaya Remotion Studio.
-   Tema slide dipilih di aplikasi dan didefinisikan di app.jsx (SLIDE_THEMES). */
+/* Tampilan aplikasi: tema putih. Tema slide dipilih di aplikasi dan didefinisikan di app.jsx (SLIDE_THEMES). */
 :root {
-  --bg: #16191d; --panel: #1f2428; --line: #353b42; --fg: #f2f4f7; --muted: #9aa4b2;
-  --accent: #0b84f3; --accent-fg: #ffffff; --soft: #123256; --danger: #ff8a7a;
-  color-scheme: dark;
+  --bg: #f4f6f8; --panel: #ffffff; --line: #dde2e8; --fg: #111827; --muted: #5b6676;
+  --accent: #0b84f3; --accent-fg: #ffffff; --soft: #e6f1fd; --danger: #c0372b;
+  color-scheme: light;
 }
 
 :root {

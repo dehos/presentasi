@@ -20,24 +20,84 @@ const toNum = (v) => { const d = digits(v); return d === '' ? null : Number(d); 
 const fmt1 = (x) => String(Math.round(x * 10) / 10).replace('.', ',');
 const fmtCompact = (n) => (n >= 1e9 ? fmt1(n / 1e9) + ' M' : n >= 1e6 ? fmt1(n / 1e6) + ' jt' : n >= 1e3 ? fmt1(n / 1e3) + ' rb' : String(n));
 const niceStep = (x) => { if (x <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(x))); const n = x / p; const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10; return m * p; };
-const periodOf = (deck) => (deck.cover.period != null ? deck.cover.period : `${deck.months[0]} – ${deck.months[2]}`);
-const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penjualan · ${deck.months[0]} – ${deck.months[2]}`);
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const MAX_BULAN = 6;
+const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+const mkKey = (y, m) => y + '-' + String(m + 1).padStart(2, '0');
+const parseKey = (k) => { const [y, m] = String(k).split('-').map(Number); return { y, m: m - 1 }; };
+const idxOf = (k) => { const { y, m } = parseKey(k); return y * 12 + m; };
+const keyOfIdx = (i) => mkKey(Math.floor(i / 12), i % 12);
+const MONTH_OPTIONS = YEARS.flatMap((y) => BULAN.map((n, m) => ({ key: y + '-' + String(m + 1).padStart(2, '0'), label: `${n} ${y}` })));
+const prevKey = (k) => keyOfIdx(idxOf(k) - 1);
+const monthsOf = (deck) => {
+  const a = idxOf(deck.range.from), b = Math.min(idxOf(deck.range.to), a + MAX_BULAN - 1);
+  const out = [];
+  for (let i = a; i <= b; i++) out.push(keyOfIdx(i));
+  return out.length ? out : [deck.range.from];
+};
+const rangeText = (deck) => {
+  const ms = monthsOf(deck), a = parseKey(ms[0]), b = parseKey(ms[ms.length - 1]);
+  if (ms.length === 1) return `${BULAN[a.m]} ${a.y}`;
+  return a.y === b.y ? `${BULAN[a.m]} – ${BULAN[b.m]} ${b.y}` : `${BULAN[a.m]} ${a.y} – ${BULAN[b.m]} ${b.y}`;
+};
+const periodOf = (deck) => (deck.cover.period != null ? deck.cover.period : rangeText(deck));
+const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penjualan · ${rangeText(deck)}`);
 
-const mkProduct = (name) => ({ id: uid(), name, target: '', values: ['', '', ''] });
-const mkSales = (name) => ({ id: uid(), name, products: [mkProduct('Produk A'), mkProduct('Produk B'), mkProduct('Produk C')], note: '' });
+const mkBrand = (name) => ({ id: uid(), name });
+const mkSales = (name) => ({ id: uid(), name, brands: [mkBrand('Brand A'), mkBrand('Brand B'), mkBrand('Brand C')], data: {}, note: '' });
+const cellOf = (sales, key, bid) => (sales.data && sales.data[key] && sales.data[key][bid]) || { total: '', target: '' };
+function statsOf(sales, key, bid) {
+  const c = cellOf(sales, key, bid);
+  const total = toNum(c.total), target = toNum(c.target), prev = toNum(cellOf(sales, prevKey(key), bid).total);
+  return {
+    total, target,
+    pct: total != null && target ? (total / target) * 100 : null,
+    trend: total != null && prev ? ((total - prev) / prev) * 100 : null,
+  };
+}
 
 const DEFAULT = {
+  version: 3,
   slideTheme: 'navy',
-  months: ['Oktober', 'November', 'Desember'],
+  range: { from: '2026-10', to: '2026-12' },
   cover: { title: 'Laporan Penjualan', sub: 'Rancangan, angka menyusul', audience: 'Disajikan untuk HRD dan Manager' },
   closing: { title: 'Terima kasih', sub: 'Sesi tanya jawab' },
   sales: ['Toni', 'Mia', 'Isti', 'Yoga', 'Fuad', 'Tita'].map(mkSales),
 };
 
+/* Mengubah data versi lama (3 kolom bulan berupa teks, angka per produk) ke bentuk baru. */
+function migrate(d) {
+  if (!d || !Array.isArray(d.sales) || !d.cover || !d.closing) return null;
+  if (d.version === 3 && d.range && d.range.from && d.range.to) return d;
+  const names = Array.isArray(d.months) ? d.months : [];
+  const idxs = names.map((n) => BULAN.findIndex((b) => b.toLowerCase() === String(n || '').trim().toLowerCase()));
+  const year = new Date().getFullYear();
+  let keys = [mkKey(year, 9), mkKey(year, 10), mkKey(year, 11)];
+  if (idxs.length === 3 && idxs.every((i) => i >= 0)) {
+    let y = year, prev = -1;
+    keys = idxs.map((m, i) => { if (i > 0 && m < prev) y++; prev = m; return mkKey(y, m); });
+  }
+  return {
+    version: 3,
+    slideTheme: d.slideTheme || 'navy',
+    range: { from: keys[0], to: keys[keys.length - 1] },
+    subline: d.subline != null ? d.subline : null,
+    cover: d.cover,
+    closing: d.closing,
+    sales: d.sales.map((s) => {
+      const olds = s.products || s.brands || [];
+      const data = {};
+      if (s.products) keys.forEach((k, i) => { data[k] = {}; olds.forEach((p) => { data[k][p.id] = { total: (p.values && p.values[i]) || '', target: p.target || '' }; }); });
+      return { id: s.id, name: s.name, note: s.note || '', brands: olds.map((p) => ({ id: p.id, name: p.name })), data: s.products ? data : (s.data || {}) };
+    }),
+  };
+}
+
 function load() {
   try {
     const raw = localStorage.getItem('laporan-penjualan-v2');
-    if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.sales) && d.months) return d; }
+    if (raw) { const m = migrate(JSON.parse(raw)); if (m) return m; }
   } catch (e) {}
   return DEFAULT;
 }
@@ -47,7 +107,6 @@ function load() {
 const SB_URL = 'https://lebwxqkbpjqqszzvmnas.supabase.co/rest/v1/lp_deck';
 const SB_KEY = 'sb_publishable_-ZI4t9ZuLF9LuIee8W_7Fg_EUrgXFat';
 const sbHead = { apikey: SB_KEY, 'Content-Type': 'application/json' };
-const validDeck = (d) => d && Array.isArray(d.sales) && Array.isArray(d.months) && d.months.length === 3 && d.cover && d.closing;
 async function dbLoad() {
   const r = await fetch(SB_URL + '?id=eq.utama&select=data', { headers: sbHead });
   if (!r.ok) throw new Error('load ' + r.status);
@@ -95,16 +154,34 @@ function Ed({ value, onChange, ro, money, style, placeholder, label }) {
 
 const headFont = "'Space Grotesk', system-ui, sans-serif";
 
+const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
+const semOf = (T) => (lum(T.paper) < 0.5
+  ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.05)' }
+  : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || '#ffffff' });
+
+function Pct({ v, sem, muted }) {
+  if (v == null) return <span style={{ color: muted }}>–</span>;
+  const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
+  return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: '2px 10px', fontWeight: 600 }}>{Math.round(v)}%</span>;
+}
+function Trend({ v, sem, muted }) {
+  if (v == null) return <span style={{ color: muted }}>–</span>;
+  const up = v > 0.05, down = v < -0.05;
+  return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap' }}>{up ? '▲ ' : down ? '▼ ' : ''}{fmt1(Math.abs(v))}%</span>;
+}
+
 function SalesSlide({ sales, deck, n, total, ro, api }) {
   const T = themeOf(deck);
-  const chartH = 215;
-  const many = sales.products.length > 4;
-  const fs = many ? 16 : 18;
-  const all = sales.products.flatMap((p) => [...p.values.map(toNum), toNum(p.target)]).filter((v) => v != null);
-  const maxV = all.length ? Math.max(...all) : 0;
-  const step = niceStep(maxV / 4);
-  const top = step * 4;
-  const ghost = maxV === 0;
+  const sem = semOf(T);
+  const keys = monthsOf(deck);
+  const nb = sales.brands.length;
+  const compact = nb > 3;
+  const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
+  const chartH = keys.length <= 3 ? 215 : keys.length <= 4 ? 175 : 140;
+  const rowH = keys.length <= 3 ? 42 : keys.length <= 4 ? 38 : 33;
+  const rowFs = nb > 4 ? 15 : compact ? 16 : 17;
+  const labW = (compact ? 38 : 48) + (crossYear ? 18 : 0);
+  const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
     <div style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: 100, background: T.header, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
@@ -116,79 +193,55 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
         </div>
       </div>
 
-      <div style={{ padding: '24px 48px 0' }}>
-        <div style={{ display: 'flex' }}>
-          <div style={{ width: 84, position: 'relative', height: chartH, flex: 'none' }}>
-            {!ghost && [0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ position: 'absolute', right: 12, bottom: (i * chartH) / 4, transform: 'translateY(50%)', fontSize: 17, color: T.muted }}>{fmtCompact(step * i)}</div>
-            ))}
-          </div>
-          <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-            {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: chartH - (i * chartH) / 4, borderTop: i === 0 ? `2px solid ${T.axis}` : `1px solid ${T.grid}` }} />
-            ))}
-            <div style={{ display: 'flex' }}>
-              {sales.products.map((p, pi) => {
-                const t = toNum(p.target);
-                return (
-                  <div key={p.id} style={{ flex: 1, minWidth: 0, padding: '0 8px' }}>
-                    <div style={{ position: 'relative', height: chartH, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 6 }}>
-                      {p.values.map((v, mi) => {
-                        const nv = toNum(v);
-                        let hgt = 0;
-                        if (nv != null && top > 0) hgt = (nv / top) * chartH;
-                        else if (ghost) hgt = GHOST[(pi * 3 + mi) % 9] * chartH;
-                        return (
-                          <div key={mi} style={{ flex: 1, maxWidth: 90, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {nv != null && <div style={{ fontSize: fs, fontWeight: 600, marginBottom: 4, whiteSpace: 'nowrap' }}>{fmtCompact(nv)}</div>}
-                            <div style={{ width: '100%', height: hgt, background: ghost ? 'transparent' : T.bars[mi], border: ghost ? `2px dashed ${T.bars[mi]}` : 'none', borderBottom: 'none', borderRadius: '4px 4px 0 0' }} />
-                          </div>
-                        );
-                      })}
-                      {t != null && top > 0 && (
-                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: (t / top) * chartH, borderTop: `3px dashed ${T.target}` }} />
-                      )}
-                    </div>
-                    <div style={{ marginTop: 8 }}>
-                      {p.values.map((v, mi) => (
-                        <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: mi ? 4 : 0, fontSize: fs }}>
-                          <span style={{ width: 12, height: 12, borderRadius: 2, background: T.bars[mi], flex: 'none' }} />
-                          <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
-                            <Ed ro={ro} money value={v} placeholder="Rp 0" label={`${p.name} ${deck.months[mi]}`} onChange={(x) => api.setValue(sales.id, p.id, mi, x)} />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ fontFamily: headFont, fontWeight: 600, fontSize: many ? 22 : 26, textAlign: 'center', marginTop: 10 }}>
-                      <Ed ro={ro} value={p.name} placeholder="Nama produk" label="Nama produk" onChange={(x) => api.setProduct(sales.id, p.id, { name: x })} />
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 16, color: T.targetText }}>
-                      <span style={{ flex: 'none' }}>Target</span>
-                      <div style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, fontSize: fs }}>
-                        <Ed ro={ro} money value={p.target} placeholder="Rp 0" label={`Target ${p.name}`} onChange={(x) => api.setProduct(sales.id, p.id, { target: x })} />
+      <div style={{ padding: '22px 48px 0' }}>
+        <div style={{ display: 'flex', gap: 16 }}>
+          {sales.brands.map((b, bi) => {
+            const st = keys.map((k) => statsOf(sales, k, b.id));
+            const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
+            const ghost = maxV === 0;
+            return (
+              <div key={b.id} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
+                <div style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10 }}>
+                  <Ed ro={ro} value={b.name} placeholder="Nama brand" label="Nama brand" onChange={(x) => api.setBrand(sales.id, b.id, x)} />
+                </div>
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
+                  {st.map((x, i) => {
+                    const h = ghost ? GHOST[(bi * 3 + i) % 9] * chartH * 0.8 : ((x.total || 0) / maxV) * (chartH - 10);
+                    const th = !ghost && x.target ? (x.target / maxV) * (chartH - 10) : null;
+                    return (
+                      <div key={keys[i]} style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
+                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : T.bars[1], border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: '5px 5px 0 0' }} />
+                        {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
                       </div>
+                    );
+                  })}
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6, fontSize: 15, color: T.muted }}>
+                  {keys.map((k) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center' }}>{short(k)}</div>)}
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  {keys.map((k, i) => (
+                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+                      <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
+                      <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : compact ? fmtCompact(st[i].total) : rp(st[i].total)}</span>
+                      <span style={{ width: compact ? 54 : 64, flex: 'none', textAlign: 'right' }}><Pct v={st[i].pct} sem={sem} muted={T.muted} /></span>
+                      <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}><Trend v={st[i].trend} sem={sem} muted={T.muted} /></span>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginTop: 14, paddingLeft: 84, fontSize: 22 }}>
-          {deck.months.map((m, mi) => (
-            <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 20, height: 20, background: T.bars[mi], borderRadius: 3 }} />
-              <div style={{ width: 150 }}><Ed ro={ro} value={m} label={`Nama bulan ${mi + 1}`} onChange={(x) => api.setMonth(mi, x)} /></div>
-            </div>
-          ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: T.muted }}>
-            <span style={{ width: 30, borderTop: `3px dashed ${T.target}` }} /> Target
-          </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.bars[1] }} />Total penjualan</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
+          <span>% = capaian dari target</span>
+          <span>▲ ▼ = dibanding bulan sebelumnya</span>
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 26, display: 'flex', alignItems: 'center', gap: 16, fontSize: 22, borderTop: `1px solid ${T.grid}`, paddingTop: 12 }}>
+      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 22, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
         <span style={{ color: T.muted, flex: 'none' }}>Catatan</span>
         <div style={{ flex: 1, minWidth: 0 }}><Ed ro={ro} value={sales.note} placeholder="Kendala atau rencana tindak lanjut" label="Catatan" onChange={(v) => api.setSales(sales.id, { note: v })} /></div>
         <span style={{ color: T.muted, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
@@ -282,6 +335,7 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
 }
 
 function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
+  const [mk, setMk] = useState(null);
   return (
     <aside className="lg:w-80 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 flex flex-col gap-3 lg:overflow-y-auto">
       <div className="head font-semibold text-base">Isi data</div>
@@ -303,39 +357,60 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
 
       {item.kind === 'sales' && (() => {
         const s = item.sales;
+        const keys = monthsOf(deck);
+        const ck = keys.includes(mk) ? mk : keys[0];
+        const { y: cy } = parseKey(ck);
         return (
           <>
             <div><label className="lbl" htmlFor="s-name">Nama sales</label><input id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
-            {s.products.map((p, pi) => (
-              <div key={p.id} className="rounded-md border border-[var(--line)] p-2 flex flex-col gap-2">
-                <div className="flex gap-2">
-                  <input aria-label="Nama produk" className="field" value={p.name} onChange={(e) => api.setProduct(s.id, p.id, { name: e.target.value })} />
-                  <button className="btn btn-danger" aria-label={`Hapus ${p.name}`} disabled={s.products.length === 1} onClick={() => api.delProduct(s.id, p.id)}>Hapus</button>
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  {deck.months.map((m, mi) => (
-                    <div key={mi}>
-                      <label className="lbl" htmlFor={`v-${p.id}-${mi}`}>{m || `Bulan ${mi + 1}`}</label>
-                      <input id={`v-${p.id}-${mi}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(p.values[mi])} onChange={(e) => api.setValue(s.id, p.id, mi, digits(e.target.value))} />
-                    </div>
-                  ))}
-                  <div>
-                    <label className="lbl" htmlFor={`t-${p.id}`}>Target</label>
-                    <input id={`t-${p.id}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(p.target)} onChange={(e) => api.setProduct(s.id, p.id, { target: digits(e.target.value) })} />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button className="btn" onClick={() => api.addProduct(s.id)}>+ Produk</button>
-            <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
-            <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
-              <div className="text-xs text-[var(--muted)]">Berlaku untuk semua slide sales</div>
-              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
-              <div className="grid grid-cols-3 gap-2">
-                {deck.months.map((m, mi) => (
-                  <div key={mi}><label className="lbl" htmlFor={`m-${mi}`}>Bulan {mi + 1}</label><input id={`m-${mi}`} className="field" value={m} onChange={(e) => api.setMonth(mi, e.target.value)} /></div>
+
+            <div>
+              <div className="lbl">Pilih bulan</div>
+              <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Bulan">
+                {keys.map((k) => (
+                  <button key={k} role="tab" aria-selected={k === ck} className={'btn ' + (k === ck ? 'btn-primary' : '')} style={{ padding: '4px 10px' }} onClick={() => setMk(k)}>{BULAN[parseKey(k).m]}</button>
                 ))}
               </div>
+            </div>
+
+            <div className="head font-semibold">{BULAN[parseKey(ck).m]} {cy}</div>
+            {s.brands.map((b) => {
+              const c = cellOf(s, ck, b.id);
+              const st = statsOf(s, ck, b.id);
+              return (
+                <div key={b.id} className="rounded-md border border-[var(--line)] p-2 flex flex-col gap-2">
+                  <div className="flex gap-2">
+                    <input aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
+                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={s.brands.length === 1} onClick={() => api.delBrand(s.id, b.id)}>Hapus</button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
+                      <input id={`v-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.total)} onChange={(e) => api.setCell(s.id, ck, b.id, { total: digits(e.target.value) })} />
+                    </div>
+                    <div>
+                      <label className="lbl" htmlFor={`t-${b.id}-${ck}`}>Target</label>
+                      <input id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
+                    </div>
+                  </div>
+                  <div className="text-xs text-[var(--muted)]">
+                    Capaian {st.pct == null ? '–' : Math.round(st.pct) + '%'} · Dibanding bulan lalu {st.trend == null ? '–' : (st.trend > 0 ? '▲ ' : st.trend < 0 ? '▼ ' : '') + fmt1(Math.abs(st.trend)) + '%'}
+                  </div>
+                </div>
+              );
+            })}
+            <button className="btn" onClick={() => api.addBrand(s.id)}>+ Brand</button>
+            <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
+
+            <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
+              <div className="text-xs text-[var(--muted)]">Berlaku untuk semua slide sales (maksimal {MAX_BULAN} bulan)</div>
+              <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+                <label className="lbl" style={{ margin: 0 }} htmlFor="r-from">Dari</label>
+                <select id="r-from" className="field" value={deck.range.from} onChange={(e) => api.setRange('from', e.target.value)}>{MONTH_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+                <label className="lbl" style={{ margin: 0 }} htmlFor="r-to">Sampai</label>
+                <select id="r-to" className="field" value={keys[keys.length - 1]} onChange={(e) => api.setRange('to', e.target.value)}>{MONTH_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+              </div>
+              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
             </div>
             <div className="grid grid-cols-3 gap-2">
               <button className="btn" onClick={() => onMove(-1)} disabled={idx <= 1}>Naik</button>
@@ -361,10 +436,11 @@ function App() {
 
   useEffect(() => {
     dbLoad().then((remote) => {
-      if (validDeck(remote)) setDeck(remote);
+      const m = migrate(remote);
+      if (m) setDeck(m);
       loaded.current = true;
-      setSync(validDeck(remote) ? 'tersimpan' : 'menyimpan');
-      if (!validDeck(remote)) setDeck((d) => ({ ...d }));
+      setSync(m ? 'tersimpan' : 'menyimpan');
+      if (!m) setDeck((d) => ({ ...d }));
     }).catch(() => { setSync('gagal'); });
   }, []);
 
@@ -383,14 +459,24 @@ function App() {
   const api = {
     setSubline: (v) => setDeck((d) => ({ ...d, subline: v })),
     setSlideTheme: (v) => setDeck((d) => ({ ...d, slideTheme: v })),
-    setMonth: (i, v) => setDeck((d) => ({ ...d, months: d.months.map((m, j) => (j === i ? v : m)) })),
+    setRange: (which, key) => setDeck((d) => {
+      let a = idxOf(d.range.from), b = idxOf(d.range.to), k = idxOf(key);
+      if (which === 'from') { a = k; if (b < a) b = a; if (b - a >= MAX_BULAN) b = a + MAX_BULAN - 1; }
+      else { b = k; if (b < a) a = b; if (b - a >= MAX_BULAN) a = b - MAX_BULAN + 1; }
+      return { ...d, range: { from: keyOfIdx(a), to: keyOfIdx(b) } };
+    }),
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
-    setProduct: (sid, pid, p) => mapSales(sid, (s) => ({ ...s, products: s.products.map((x) => (x.id === pid ? { ...x, ...p } : x)) })),
-    setValue: (sid, pid, mi, v) => mapSales(sid, (s) => ({ ...s, products: s.products.map((x) => (x.id === pid ? { ...x, values: x.values.map((y, j) => (j === mi ? v : y)) } : x)) })),
-    addProduct: (sid) => mapSales(sid, (s) => ({ ...s, products: [...s.products, mkProduct('Produk ' + String.fromCharCode(65 + s.products.length))] })),
-    delProduct: (sid, pid) => mapSales(sid, (s) => (s.products.length > 1 ? { ...s, products: s.products.filter((x) => x.id !== pid) } : s)),
+    setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name } : x)) })),
+    setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p } } } })),
+    addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('Brand ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
+    delBrand: (sid, bid) => mapSales(sid, (s) => {
+      if (s.brands.length <= 1) return s;
+      const data = {};
+      Object.keys(s.data || {}).forEach((k) => { const { [bid]: _x, ...rest } = s.data[k]; data[k] = rest; });
+      return { ...s, brands: s.brands.filter((x) => x.id !== bid), data };
+    }),
   };
 
   const addSales = () => {
@@ -410,11 +496,22 @@ function App() {
     setDeck((d) => { const arr = [...d.sales]; [arr[a], arr[b]] = [arr[b], arr[a]]; return { ...d, sales: arr }; });
     setIdx(safeIdx + dir);
   };
-  const fillSample = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, products: s.products.map((p) => {
-    const base = (20 + Math.round(Math.random() * 80)) * 100000;
-    return { ...p, target: String(Math.round(base * 1.15 / 500000) * 500000), values: [0, 1, 2].map(() => String(Math.max(1000000, base + Math.round((Math.random() - 0.4) * 0.3 * base / 100000) * 100000))) };
-  }) })) }));
-  const clearNums = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, products: s.products.map((p) => ({ ...p, target: '', values: ['', '', ''] })) })) }));
+  const fillSample = () => setDeck((d) => {
+    const keys = monthsOf(d);
+    return { ...d, sales: d.sales.map((s) => {
+      const data = { ...(s.data || {}) };
+      s.brands.forEach((b) => {
+        const base = (20 + Math.round(Math.random() * 80)) * 100000;
+        const target = Math.round((base * 1.1) / 500000) * 500000;
+        keys.forEach((k) => {
+          const total = Math.max(1000000, Math.round((base * (0.8 + Math.random() * 0.4)) / 100000) * 100000);
+          data[k] = { ...(data[k] || {}), [b.id]: { total: String(total), target: String(target) } };
+        });
+      });
+      return { ...s, data };
+    }) };
+  });
+  const clearNums = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, data: {} })) }));
   const resetAll = () => { setDeck(DEFAULT); setIdx(1); };
 
   useEffect(() => {
@@ -468,7 +565,6 @@ function App() {
           <div className="w-full aspect-video lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-2">
             <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} /></Fit>
           </div>
-          <p className="text-xs text-[var(--muted)] m-0">Klik nama, bulan, angka, atau target langsung di slide. Di layar kecil, isi lewat panel Isi data. Nama bulan dan tema berlaku untuk semua slide. Angka diketik biasa, titik ribuan dan Rp ditambahkan otomatis.</p>
         </main>
 
         <Panel item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} onDelete={delSales} />

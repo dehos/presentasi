@@ -5,9 +5,11 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 ## Fitur
 
 - Slide sampul, satu slide per sales, dan slide penutup
-- Edit langsung di slide: nama sales, nama bulan, nama produk, angka per bulan, target, catatan
-- Grafik batang dan garis target ikut berubah saat angka diisi
-- Tambah, hapus, dan urutkan slide sales; tambah atau hapus produk per sales
+- Rentang bulan dipilih lewat selector (maksimal 6 bulan)
+- Form Isi data per bulan: pilih bulan, lalu isi total penjualan dan target tiap brand
+- Slide otomatis menghitung persentase capaian terhadap target tiap brand per bulan, serta kenaikan atau penurunan dibanding bulan sebelumnya
+- Edit langsung di slide: nama sales, nama brand, keterangan periode, catatan
+- Tambah, hapus, dan urutkan slide sales; tambah atau hapus brand per sales
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
 - Pemilih tema slide: Navy dan teal, Remotion gelap, Putih bersih, Ungu, Senja
