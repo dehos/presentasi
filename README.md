@@ -11,7 +11,7 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
 - Pemilih tema slide: Navy dan teal, Remotion gelap, Putih bersih, Ungu, Senja
-- Data dan tema tersimpan di browser (localStorage), belum di database
+- Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`), tanpa login; cadangan di browser (localStorage)
 
 ## Menjalankan
 
@@ -36,3 +36,7 @@ React, Tailwind, dan Babel dimuat dari CDN, jadi perlu koneksi internet.
 ## Menambah tema slide
 
 Tambahkan satu entri di `SLIDE_THEMES` pada `app.jsx` dengan kunci warna yang sama seperti tema lain (`paper`, `header`, `bars`, `target`, dan seterusnya). Tema otomatis muncul di pemilih.
+
+## Database
+
+Isi deck disimpan sebagai satu baris JSON di tabel `public.lp_deck` (id `utama`) pada Supabase. Aplikasi membaca saat dibuka dan menyimpan otomatis sekitar 1 detik setelah perubahan. Tidak ada login, jadi siapa pun yang punya alamat halaman ini bisa melihat dan mengubah data. Jika koneksi gagal, aplikasi menampilkan peringatan dan tidak menimpa data di database.

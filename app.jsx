@@ -42,6 +42,27 @@ function load() {
   return DEFAULT;
 }
 
+/* Penyimpanan database (Supabase). Kunci publishable memang dirancang untuk dipakai di browser;
+   akses dibatasi oleh aturan RLS pada tabel lp_deck (satu baris, id 'utama'). */
+const SB_URL = 'https://lebwxqkbpjqqszzvmnas.supabase.co/rest/v1/lp_deck';
+const SB_KEY = 'sb_publishable_-ZI4t9ZuLF9LuIee8W_7Fg_EUrgXFat';
+const sbHead = { apikey: SB_KEY, 'Content-Type': 'application/json' };
+const validDeck = (d) => d && Array.isArray(d.sales) && Array.isArray(d.months) && d.months.length === 3 && d.cover && d.closing;
+async function dbLoad() {
+  const r = await fetch(SB_URL + '?id=eq.utama&select=data', { headers: sbHead });
+  if (!r.ok) throw new Error('load ' + r.status);
+  const rows = await r.json();
+  return rows.length ? rows[0].data : null;
+}
+async function dbSave(data) {
+  const r = await fetch(SB_URL + '?on_conflict=id', {
+    method: 'POST',
+    headers: { ...sbHead, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ id: 'utama', data, updated_at: new Date().toISOString() }),
+  });
+  if (!r.ok) throw new Error('save ' + r.status);
+}
+
 function Fit({ children }) {
   const ref = useRef(null);
   const [s, setS] = useState(0.4);
@@ -333,7 +354,26 @@ function App() {
   const [idx, setIdx] = useState(1);
   const [presenting, setPresenting] = useState(false);
 
+  const [sync, setSync] = useState('memuat');
+  const loaded = useRef(false);
+
   useEffect(() => { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} }, [deck]);
+
+  useEffect(() => {
+    dbLoad().then((remote) => {
+      if (validDeck(remote)) setDeck(remote);
+      loaded.current = true;
+      setSync(validDeck(remote) ? 'tersimpan' : 'menyimpan');
+      if (!validDeck(remote)) setDeck((d) => ({ ...d }));
+    }).catch(() => { setSync('gagal'); });
+  }, []);
+
+  useEffect(() => {
+    if (!loaded.current) return;
+    setSync('menyimpan');
+    const id = setTimeout(() => { dbSave(deck).then(() => setSync('tersimpan')).catch(() => setSync('gagal')); }, 800);
+    return () => clearTimeout(id);
+  }, [deck]);
 
   const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), { kind: 'closing', key: 'closing' }];
   const safeIdx = Math.min(idx, items.length - 1);
@@ -394,7 +434,12 @@ function App() {
   return (
     <div className="flex flex-col gap-3 min-h-full lg:h-full">
       <header className="flex flex-wrap items-center justify-between gap-2">
-        <h1 className="head text-lg font-bold m-0">Laporan Penjualan</h1>
+        <div className="flex items-center gap-3 min-w-0">
+          <h1 className="head text-lg font-bold m-0">Laporan Penjualan</h1>
+          <span role="status" className="text-xs px-2 py-0.5 rounded-full bg-[var(--soft)]" style={{ color: sync === 'gagal' ? 'var(--danger)' : 'var(--muted)' }}>
+            {sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Gagal terhubung, hanya tersimpan di browser' : 'Memuat…'}
+          </span>
+        </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="sr-only" htmlFor="slide-theme">Tema slide</label>
           <select id="slide-theme" className="field" style={{ width: 'auto' }} value={deck.slideTheme} onChange={(e) => api.setSlideTheme(e.target.value)}>
