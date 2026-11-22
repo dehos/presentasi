@@ -1,24 +1,8 @@
-/* Tema aplikasi. Ganti lewat atribut data-theme pada <html>.
-   Gaya mengacu ke Remotion Studio: abu gelap kebiruan dengan aksen biru. */
-:root,
-:root[data-theme="remotion-gelap"] {
+/* Tampilan aplikasi memakai satu tema gelap bergaya Remotion Studio.
+   Tema slide dipilih di aplikasi dan didefinisikan di app.jsx (SLIDE_THEMES). */
+:root {
   --bg: #16191d; --panel: #1f2428; --line: #353b42; --fg: #f2f4f7; --muted: #9aa4b2;
   --accent: #0b84f3; --accent-fg: #ffffff; --soft: #123256; --danger: #ff8a7a;
-  color-scheme: dark;
-}
-:root[data-theme="remotion-terang"] {
-  --bg: #f1f4f7; --panel: #ffffff; --line: #dbe1e8; --fg: #0f1720; --muted: #5a6675;
-  --accent: #0b84f3; --accent-fg: #ffffff; --soft: #e1eefc; --danger: #b42318;
-  color-scheme: light;
-}
-:root[data-theme="ungu"] {
-  --bg: #15121f; --panel: #1e1a2e; --line: #36304c; --fg: #f1eefb; --muted: #a49cc0;
-  --accent: #8b6cf7; --accent-fg: #ffffff; --soft: #2a2250; --danger: #ff8a7a;
-  color-scheme: dark;
-}
-:root[data-theme="hijau"] {
-  --bg: #0f1714; --panel: #17221e; --line: #2c3f37; --fg: #e9f5ef; --muted: #8fae9f;
-  --accent: #2fbf8f; --accent-fg: #04130d; --soft: #153a2e; --danger: #ff8a7a;
   color-scheme: dark;
 }
 
@@ -28,6 +12,7 @@
 }
 
 html, body { height: 100%; }
+html, body { max-width: 100%; overflow-x: hidden; }
 body {
   margin: 0;
   background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 14px;

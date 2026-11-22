@@ -1,25 +1,33 @@
 const { useState, useEffect, useLayoutEffect, useRef, useCallback } = React;
 
 const W = 1280, H = 720;
-const APP_THEMES = [
-  { id: 'remotion-gelap', name: 'Remotion gelap' },
-  { id: 'remotion-terang', name: 'Remotion terang' },
-  { id: 'ungu', name: 'Ungu' },
-  { id: 'hijau', name: 'Hijau' },
-];
-const NAVY = '#12263f', TEAL = '#1D9E75', AMBER = '#EF9F27', PAPER = '#f7f9fc', INK = '#1f2a3d', MUTED = '#5b6680';
-const MCOL = ['#9FE1CB', '#1D9E75', '#0F6E56'];
 const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
+
+const SLIDE_THEMES = {
+  navy: { name: 'Navy dan teal', paper: '#f7f9fc', ink: '#1f2a3d', muted: '#5b6680', grid: '#dfe3ea', axis: '#b4b2a9', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#EF9F27', targetText: '#a86a0a' },
+  remotion: { name: 'Remotion gelap', paper: '#1b1f24', ink: '#f2f4f7', muted: '#9aa4b2', grid: '#2c3238', axis: '#4a525b', header: '#0b84f3', headerFg: '#ffffff', headerSub: '#d6e9fd', cover: '#16191d', coverFg: '#ffffff', coverSub: '#5fb0f8', coverMuted: '#9aa4b2', accent: '#0b84f3', bars: ['#9fd0fb', '#0b84f3', '#0a5bb0'], target: '#f5b942', targetText: '#f5b942' },
+  terang: { name: 'Putih bersih', paper: '#ffffff', ink: '#111827', muted: '#6b7280', grid: '#e5e7eb', axis: '#9ca3af', header: '#eef2f7', headerFg: '#111827', headerSub: '#4b5563', cover: '#ffffff', coverFg: '#111827', coverSub: '#2563eb', coverMuted: '#6b7280', accent: '#2563eb', bars: ['#bfdbfe', '#60a5fa', '#1d4ed8'], target: '#f59e0b', targetText: '#b45309' },
+  ungu: { name: 'Ungu', paper: '#f8f7fd', ink: '#241c45', muted: '#6a6490', grid: '#e4e0f5', axis: '#b5aedb', header: '#2a1f5c', headerFg: '#ffffff', headerSub: '#cbbffc', cover: '#2a1f5c', coverFg: '#ffffff', coverSub: '#cbbffc', coverMuted: '#a99fda', accent: '#8b6cf7', bars: ['#d4c8ff', '#8b6cf7', '#5a3fd0'], target: '#EF9F27', targetText: '#a86a0a' },
+  senja: { name: 'Senja', paper: '#fdf8f5', ink: '#3a1f17', muted: '#8a6a5e', grid: '#f0e1da', axis: '#d3b8ab', header: '#5a2418', headerFg: '#ffffff', headerSub: '#f7c4a5', cover: '#5a2418', coverFg: '#ffffff', coverSub: '#f7c4a5', coverMuted: '#d9a994', accent: '#e4693b', bars: ['#f7c4a5', '#e4693b', '#a43a1a'], target: '#1d6fb8', targetText: '#1d6fb8' },
+};
+const themeOf = (deck) => SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.navy;
+
 const uid = () => Math.random().toString(36).slice(2, 9);
-const toNum = (v) => { if (v === '' || v == null) return null; const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? null : n; };
-const fmtNum = (v) => Number(v).toLocaleString('id-ID', { maximumFractionDigits: 1 });
+const digits = (v) => String(v == null ? '' : v).replace(/\D/g, '');
+const dot = (s) => s.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const rp = (v) => { const d = digits(v); return d ? 'Rp ' + dot(d.replace(/^0+(?=\d)/, '')) : ''; };
+const toNum = (v) => { const d = digits(v); return d === '' ? null : Number(d); };
+const fmt1 = (x) => String(Math.round(x * 10) / 10).replace('.', ',');
+const fmtCompact = (n) => (n >= 1e9 ? fmt1(n / 1e9) + ' M' : n >= 1e6 ? fmt1(n / 1e6) + ' jt' : n >= 1e3 ? fmt1(n / 1e3) + ' rb' : String(n));
 const niceStep = (x) => { if (x <= 0) return 0; const p = Math.pow(10, Math.floor(Math.log10(x))); const n = x / p; const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10; return m * p; };
+const periodOf = (deck) => (deck.cover.period != null ? deck.cover.period : `${deck.months[0]} – ${deck.months[2]}`);
+const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penjualan · ${deck.months[0]} – ${deck.months[2]}`);
 
 const mkProduct = (name) => ({ id: uid(), name, target: '', values: ['', '', ''] });
 const mkSales = (name) => ({ id: uid(), name, products: [mkProduct('Produk A'), mkProduct('Produk B'), mkProduct('Produk C')], note: '' });
 
 const DEFAULT = {
-  unit: 'Rp juta',
+  slideTheme: 'navy',
   months: ['Oktober', 'November', 'Desember'],
   cover: { title: 'Laporan Penjualan', sub: 'Rancangan, angka menyusul', audience: 'Disajikan untuk HRD dan Manager' },
   closing: { title: 'Terima kasih', sub: 'Sesi tanya jawab' },
@@ -28,7 +36,7 @@ const DEFAULT = {
 
 function load() {
   try {
-    const raw = localStorage.getItem('laporan-penjualan-v1');
+    const raw = localStorage.getItem('laporan-penjualan-v2');
     if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.sales) && d.months) return d; }
   } catch (e) {}
   return DEFAULT;
@@ -54,36 +62,36 @@ function Fit({ children }) {
   );
 }
 
-function Ed({ value, onChange, ro, num, style, placeholder, label }) {
-  if (ro) return <span style={{ display: 'block', ...style }}>{value === '' || value == null ? (placeholder || ' ') : value}</span>;
+function Ed({ value, onChange, ro, money, style, placeholder, label }) {
+  const shown = money ? rp(value) : value;
+  if (ro) return <span style={{ display: 'block', ...style }}>{shown === '' || shown == null ? (placeholder || '\u00a0') : shown}</span>;
   return (
-    <input className="ed" style={style} value={value} placeholder={placeholder} aria-label={label}
-      inputMode={num ? 'decimal' : 'text'}
-      onChange={(e) => onChange(num ? e.target.value.replace(/[^0-9.,]/g, '') : e.target.value)} />
+    <input className="ed" style={style} value={shown} placeholder={placeholder} aria-label={label}
+      inputMode={money ? 'numeric' : 'text'}
+      onChange={(e) => onChange(money ? digits(e.target.value) : e.target.value)} />
   );
 }
 
 const headFont = "'Space Grotesk', system-ui, sans-serif";
 
 function SalesSlide({ sales, deck, n, total, ro, api }) {
-  const chartH = 270;
+  const T = themeOf(deck);
+  const chartH = 215;
+  const many = sales.products.length > 4;
+  const fs = many ? 16 : 18;
   const all = sales.products.flatMap((p) => [...p.values.map(toNum), toNum(p.target)]).filter((v) => v != null);
   const maxV = all.length ? Math.max(...all) : 0;
   const step = niceStep(maxV / 4);
   const top = step * 4;
   const ghost = maxV === 0;
   return (
-    <div style={{ width: W, height: H, background: PAPER, color: INK, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
-      <div style={{ height: 100, background: NAVY, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+    <div style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
+      <div style={{ height: 100, background: T.header, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           <Ed ro={ro} value={sales.name} placeholder="Nama sales" label="Nama sales" onChange={(v) => api.setSales(sales.id, { name: v })} />
         </div>
-        <div style={{ textAlign: 'right', fontSize: 22, color: '#9FE1CB', flex: 'none' }}>
-          <div>Laporan penjualan · {deck.months[0]} – {deck.months[2]}</div>
-          <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', alignItems: 'center', marginTop: 4 }}>
-            <span>Satuan:</span>
-            <div style={{ width: 130, textAlign: 'left', color: '#fff' }}><Ed ro={ro} value={deck.unit} label="Satuan" onChange={api.setUnit} /></div>
-          </div>
+        <div style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+          <Ed ro={ro} value={sublineOf(deck)} label="Keterangan periode" onChange={api.setSubline} />
         </div>
       </div>
 
@@ -91,48 +99,53 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
         <div style={{ display: 'flex' }}>
           <div style={{ width: 84, position: 'relative', height: chartH, flex: 'none' }}>
             {!ghost && [0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ position: 'absolute', right: 12, bottom: (i * chartH) / 4, transform: 'translateY(50%)', fontSize: 18, color: MUTED }}>{fmtNum(step * i)}</div>
+              <div key={i} style={{ position: 'absolute', right: 12, bottom: (i * chartH) / 4, transform: 'translateY(50%)', fontSize: 17, color: T.muted }}>{fmtCompact(step * i)}</div>
             ))}
           </div>
           <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
             {[0, 1, 2, 3, 4].map((i) => (
-              <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: chartH - (i * chartH) / 4, borderTop: i === 0 ? '2px solid #b4b2a9' : '1px solid #dfe3ea' }} />
+              <div key={i} style={{ position: 'absolute', left: 0, right: 0, top: chartH - (i * chartH) / 4, borderTop: i === 0 ? `2px solid ${T.axis}` : `1px solid ${T.grid}` }} />
             ))}
             <div style={{ display: 'flex' }}>
               {sales.products.map((p, pi) => {
                 const t = toNum(p.target);
                 return (
-                  <div key={p.id} style={{ flex: 1, minWidth: 0, padding: '0 10px' }}>
-                    <div style={{ position: 'relative', height: chartH, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 8 }}>
+                  <div key={p.id} style={{ flex: 1, minWidth: 0, padding: '0 8px' }}>
+                    <div style={{ position: 'relative', height: chartH, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 6 }}>
                       {p.values.map((v, mi) => {
                         const nv = toNum(v);
                         let hgt = 0;
                         if (nv != null && top > 0) hgt = (nv / top) * chartH;
                         else if (ghost) hgt = GHOST[(pi * 3 + mi) % 9] * chartH;
                         return (
-                          <div key={mi} style={{ flex: 1, maxWidth: 70, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                            {nv != null && <div style={{ fontSize: 20, fontWeight: 600, marginBottom: 4 }}>{fmtNum(nv)}</div>}
-                            <div style={{ width: '100%', height: hgt, background: ghost ? 'transparent' : MCOL[mi], border: ghost ? `2px dashed ${MCOL[mi]}` : 'none', borderBottom: 'none', borderRadius: '4px 4px 0 0' }} />
+                          <div key={mi} style={{ flex: 1, maxWidth: 90, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+                            {nv != null && <div style={{ fontSize: fs, fontWeight: 600, marginBottom: 4, whiteSpace: 'nowrap' }}>{fmtCompact(nv)}</div>}
+                            <div style={{ width: '100%', height: hgt, background: ghost ? 'transparent' : T.bars[mi], border: ghost ? `2px dashed ${T.bars[mi]}` : 'none', borderBottom: 'none', borderRadius: '4px 4px 0 0' }} />
                           </div>
                         );
                       })}
                       {t != null && top > 0 && (
-                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: (t / top) * chartH, borderTop: `3px dashed ${AMBER}` }} />
+                        <div style={{ position: 'absolute', left: 0, right: 0, bottom: (t / top) * chartH, borderTop: `3px dashed ${T.target}` }} />
                       )}
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 8 }}>
+                    <div style={{ marginTop: 8 }}>
                       {p.values.map((v, mi) => (
-                        <div key={mi} style={{ flex: 1, maxWidth: 70, fontSize: 20, textAlign: 'center' }}>
-                          <Ed ro={ro} num value={v} placeholder="0" label={`${p.name} ${deck.months[mi]}`} onChange={(x) => api.setValue(sales.id, p.id, mi, x)} />
+                        <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: mi ? 4 : 0, fontSize: fs }}>
+                          <span style={{ width: 12, height: 12, borderRadius: 2, background: T.bars[mi], flex: 'none' }} />
+                          <div style={{ flex: 1, minWidth: 0, textAlign: 'right' }}>
+                            <Ed ro={ro} money value={v} placeholder="Rp 0" label={`${p.name} ${deck.months[mi]}`} onChange={(x) => api.setValue(sales.id, p.id, mi, x)} />
+                          </div>
                         </div>
                       ))}
                     </div>
-                    <div style={{ fontFamily: headFont, fontWeight: 600, fontSize: 28, textAlign: 'center', marginTop: 10 }}>
+                    <div style={{ fontFamily: headFont, fontWeight: 600, fontSize: many ? 22 : 26, textAlign: 'center', marginTop: 10 }}>
                       <Ed ro={ro} value={p.name} placeholder="Nama produk" label="Nama produk" onChange={(x) => api.setProduct(sales.id, p.id, { name: x })} />
                     </div>
-                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 20, color: '#a86a0a' }}>
-                      <span>Target</span>
-                      <div style={{ width: 90, textAlign: 'center', fontWeight: 600 }}><Ed ro={ro} num value={p.target} placeholder="0" label={`Target ${p.name}`} onChange={(x) => api.setProduct(sales.id, p.id, { target: x })} /></div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 16, color: T.targetText }}>
+                      <span style={{ flex: 'none' }}>Target</span>
+                      <div style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, fontSize: fs }}>
+                        <Ed ro={ro} money value={p.target} placeholder="Rp 0" label={`Target ${p.name}`} onChange={(x) => api.setProduct(sales.id, p.id, { target: x })} />
+                      </div>
                     </div>
                   </div>
                 );
@@ -144,37 +157,40 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 28, marginTop: 14, paddingLeft: 84, fontSize: 22 }}>
           {deck.months.map((m, mi) => (
             <div key={mi} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ width: 20, height: 20, background: MCOL[mi], borderRadius: 3 }} />
+              <span style={{ width: 20, height: 20, background: T.bars[mi], borderRadius: 3 }} />
               <div style={{ width: 150 }}><Ed ro={ro} value={m} label={`Nama bulan ${mi + 1}`} onChange={(x) => api.setMonth(mi, x)} /></div>
             </div>
           ))}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: MUTED }}>
-            <span style={{ width: 30, borderTop: `3px dashed ${AMBER}` }} /> Target
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: T.muted }}>
+            <span style={{ width: 30, borderTop: `3px dashed ${T.target}` }} /> Target
           </div>
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 26, display: 'flex', alignItems: 'center', gap: 16, fontSize: 22, borderTop: '1px solid #dfe3ea', paddingTop: 12 }}>
-        <span style={{ color: MUTED, flex: 'none' }}>Catatan</span>
+      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 26, display: 'flex', alignItems: 'center', gap: 16, fontSize: 22, borderTop: `1px solid ${T.grid}`, paddingTop: 12 }}>
+        <span style={{ color: T.muted, flex: 'none' }}>Catatan</span>
         <div style={{ flex: 1, minWidth: 0 }}><Ed ro={ro} value={sales.note} placeholder="Kendala atau rencana tindak lanjut" label="Catatan" onChange={(v) => api.setSales(sales.id, { note: v })} /></div>
-        <span style={{ color: MUTED, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
+        <span style={{ color: T.muted, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
       </div>
     </div>
   );
 }
 
 function CoverSlide({ deck, ro, api }) {
+  const T = themeOf(deck);
   return (
-    <div style={{ width: W, height: H, background: NAVY, color: '#fff', fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
-      <div style={{ width: 96, height: 8, background: TEAL, marginBottom: 40 }} />
+    <div style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+      <div style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
       </div>
-      <div style={{ fontSize: 36, color: '#9FE1CB', marginTop: 28 }}>{deck.months[0]} – {deck.months[2]}</div>
-      <div style={{ fontSize: 28, color: '#b4b8c4', marginTop: 12 }}>
+      <div style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
+        <Ed ro={ro} value={periodOf(deck)} label="Periode" onChange={(v) => api.setCover({ period: v })} />
+      </div>
+      <div style={{ fontSize: 28, color: T.coverMuted, marginTop: 12 }}>
         <Ed ro={ro} value={deck.cover.sub} label="Subjudul" onChange={(v) => api.setCover({ sub: v })} />
       </div>
-      <div style={{ position: 'absolute', left: 96, right: 96, bottom: 56, fontSize: 24, color: '#b4b8c4' }}>
+      <div style={{ position: 'absolute', left: 96, right: 96, bottom: 56, fontSize: 24, color: T.coverMuted }}>
         <Ed ro={ro} value={deck.cover.audience} label="Untuk siapa" onChange={(v) => api.setCover({ audience: v })} />
       </div>
     </div>
@@ -182,13 +198,14 @@ function CoverSlide({ deck, ro, api }) {
 }
 
 function ClosingSlide({ deck, ro, api }) {
+  const T = themeOf(deck);
   return (
-    <div style={{ width: W, height: H, background: NAVY, color: '#fff', fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div style={{ width: 96, height: 8, background: TEAL, marginBottom: 40 }} />
+    <div style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
       </div>
-      <div style={{ fontSize: 36, color: '#9FE1CB', marginTop: 28 }}>
+      <div style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
         <Ed ro={ro} value={deck.closing.sub} label="Subjudul penutup" onChange={(v) => api.setClosing({ sub: v })} />
       </div>
     </div>
@@ -224,9 +241,10 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [go, onExit]);
   const it = items[index];
+  const T = themeOf(deck);
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#000' }}>
-      <div style={{ height: 3, background: '#222' }}><div style={{ height: 3, width: `${((index + 1) / total) * 100}%`, background: TEAL, transition: 'width .25s' }} /></div>
+      <div style={{ height: 3, background: '#222' }}><div style={{ height: 3, width: `${((index + 1) / total) * 100}%`, background: T.accent, transition: 'width .25s' }} /></div>
       <div className="flex-1 min-h-0 cursor-pointer" onClick={() => go((c) => c + 1)}>
         <Fit><div key={it.key} className="slide-in"><SlideView item={it} deck={deck} n={index + 1} total={total} ro api={api} /></div></Fit>
       </div>
@@ -236,7 +254,7 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
           <button className="px-3 py-1 rounded border border-[#2a3142] disabled:opacity-40" disabled={index === total - 1} onClick={() => go((c) => c + 1)}>Berikutnya</button>
         </div>
         <div className="tabular-nums">{index + 1} / {total} · {fmtTime(elapsed)}</div>
-        <button className="px-3 py-1 rounded" style={{ background: TEAL, color: '#04130d', fontWeight: 600 }} onClick={onExit}>Keluar (Esc)</button>
+        <button className="px-3 py-1 rounded" style={{ background: T.accent, color: '#04130d', fontWeight: 600 }} onClick={onExit}>Keluar (Esc)</button>
       </div>
     </div>
   );
@@ -250,6 +268,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
       {item.kind === 'cover' && (
         <>
           <div><label className="lbl" htmlFor="c-title">Judul</label><input id="c-title" className="field" value={deck.cover.title} onChange={(e) => api.setCover({ title: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="c-per">Periode</label><input id="c-per" className="field" value={periodOf(deck)} onChange={(e) => api.setCover({ period: e.target.value })} /></div>
           <div><label className="lbl" htmlFor="c-sub">Subjudul</label><input id="c-sub" className="field" value={deck.cover.sub} onChange={(e) => api.setCover({ sub: e.target.value })} /></div>
           <div><label className="lbl" htmlFor="c-aud">Untuk siapa</label><input id="c-aud" className="field" value={deck.cover.audience} onChange={(e) => api.setCover({ audience: e.target.value })} /></div>
         </>
@@ -276,12 +295,12 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
                   {deck.months.map((m, mi) => (
                     <div key={mi}>
                       <label className="lbl" htmlFor={`v-${p.id}-${mi}`}>{m || `Bulan ${mi + 1}`}</label>
-                      <input id={`v-${p.id}-${mi}`} className="field" inputMode="decimal" value={p.values[mi]} onChange={(e) => api.setValue(s.id, p.id, mi, e.target.value.replace(/[^0-9.,]/g, ''))} />
+                      <input id={`v-${p.id}-${mi}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(p.values[mi])} onChange={(e) => api.setValue(s.id, p.id, mi, digits(e.target.value))} />
                     </div>
                   ))}
                   <div>
                     <label className="lbl" htmlFor={`t-${p.id}`}>Target</label>
-                    <input id={`t-${p.id}`} className="field" inputMode="decimal" value={p.target} onChange={(e) => api.setProduct(s.id, p.id, { target: e.target.value.replace(/[^0-9.,]/g, '') })} />
+                    <input id={`t-${p.id}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(p.target)} onChange={(e) => api.setProduct(s.id, p.id, { target: digits(e.target.value) })} />
                   </div>
                 </div>
               </div>
@@ -290,7 +309,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
             <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
             <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
               <div className="text-xs text-[var(--muted)]">Berlaku untuk semua slide sales</div>
-              <div><label className="lbl" htmlFor="g-unit">Satuan</label><input id="g-unit" className="field" value={deck.unit} onChange={(e) => api.setUnit(e.target.value)} /></div>
+              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
               <div className="grid grid-cols-3 gap-2">
                 {deck.months.map((m, mi) => (
                   <div key={mi}><label className="lbl" htmlFor={`m-${mi}`}>Bulan {mi + 1}</label><input id={`m-${mi}`} className="field" value={m} onChange={(e) => api.setMonth(mi, e.target.value)} /></div>
@@ -314,16 +333,7 @@ function App() {
   const [idx, setIdx] = useState(1);
   const [presenting, setPresenting] = useState(false);
 
-  useEffect(() => { try { localStorage.setItem('laporan-penjualan-v1', JSON.stringify(deck)); } catch (e) {} }, [deck]);
-
-  const [theme, setTheme] = useState(() => {
-    const cur = document.documentElement.getAttribute('data-theme');
-    return APP_THEMES.some((t) => t.id === cur) ? cur : APP_THEMES[0].id;
-  });
-  useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    try { localStorage.setItem('presentasi-theme', theme); } catch (e) {}
-  }, [theme]);
+  useEffect(() => { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} }, [deck]);
 
   const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), { kind: 'closing', key: 'closing' }];
   const safeIdx = Math.min(idx, items.length - 1);
@@ -331,7 +341,8 @@ function App() {
 
   const mapSales = (id, fn) => setDeck((d) => ({ ...d, sales: d.sales.map((s) => (s.id === id ? fn(s) : s)) }));
   const api = {
-    setUnit: (v) => setDeck((d) => ({ ...d, unit: v })),
+    setSubline: (v) => setDeck((d) => ({ ...d, subline: v })),
+    setSlideTheme: (v) => setDeck((d) => ({ ...d, slideTheme: v })),
     setMonth: (i, v) => setDeck((d) => ({ ...d, months: d.months.map((m, j) => (j === i ? v : m)) })),
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
@@ -360,8 +371,8 @@ function App() {
     setIdx(safeIdx + dir);
   };
   const fillSample = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, products: s.products.map((p) => {
-    const base = 40 + Math.round(Math.random() * 50);
-    return { ...p, target: String(Math.round(base * 1.15 / 5) * 5), values: [0, 1, 2].map(() => String(Math.max(10, base + Math.round((Math.random() - 0.4) * 30)))) };
+    const base = (20 + Math.round(Math.random() * 80)) * 100000;
+    return { ...p, target: String(Math.round(base * 1.15 / 500000) * 500000), values: [0, 1, 2].map(() => String(Math.max(1000000, base + Math.round((Math.random() - 0.4) * 0.3 * base / 100000) * 100000))) };
   }) })) }));
   const clearNums = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, products: s.products.map((p) => ({ ...p, target: '', values: ['', '', ''] })) })) }));
   const resetAll = () => { setDeck(DEFAULT); setIdx(1); };
@@ -385,9 +396,9 @@ function App() {
       <header className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="head text-lg font-bold m-0">Laporan Penjualan</h1>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="sr-only" htmlFor="app-theme">Tema aplikasi</label>
-          <select id="app-theme" className="field" style={{ width: 'auto' }} value={theme} onChange={(e) => setTheme(e.target.value)}>
-            {APP_THEMES.map((t) => <option key={t.id} value={t.id}>Tema {t.name}</option>)}
+          <label className="sr-only" htmlFor="slide-theme">Tema slide</label>
+          <select id="slide-theme" className="field" style={{ width: 'auto' }} value={deck.slideTheme} onChange={(e) => api.setSlideTheme(e.target.value)}>
+            {Object.entries(SLIDE_THEMES).map(([k, t]) => <option key={k} value={k}>Tema slide: {t.name}</option>)}
           </select>
           <button className="btn" onClick={fillSample}>Isi data contoh</button>
           <button className="btn" onClick={clearNums}>Kosongkan angka</button>
@@ -412,7 +423,7 @@ function App() {
           <div className="w-full aspect-video lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-2">
             <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} /></Fit>
           </div>
-          <p className="text-xs text-[var(--muted)] m-0">Klik nama, bulan, angka, atau target langsung di slide. Di layar kecil, isi lewat panel Isi data. Nama bulan dan satuan berlaku untuk semua slide.</p>
+          <p className="text-xs text-[var(--muted)] m-0">Klik nama, bulan, angka, atau target langsung di slide. Di layar kecil, isi lewat panel Isi data. Nama bulan dan tema berlaku untuk semua slide. Angka diketik biasa, titik ribuan dan Rp ditambahkan otomatis.</p>
         </main>
 
         <Panel item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} onDelete={delSales} />

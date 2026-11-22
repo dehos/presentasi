@@ -9,8 +9,9 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Grafik batang dan garis target ikut berubah saat angka diisi
 - Tambah, hapus, dan urutkan slide sales; tambah atau hapus produk per sales
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
-- Pemilih tema aplikasi: Remotion gelap, Remotion terang, Ungu, Hijau
-- Data dan tema tersimpan di browser (localStorage)
+- Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
+- Pemilih tema slide: Navy dan teal, Remotion gelap, Putih bersih, Ungu, Senja
+- Data dan tema tersimpan di browser (localStorage), belum di database
 
 ## Menjalankan
 
@@ -32,6 +33,6 @@ React, Tailwind, dan Babel dimuat dari CDN, jadi perlu koneksi internet.
 | `app.jsx` | Seluruh komponen React |
 | `styles.css` | Tema aplikasi dan gaya dasar |
 
-## Menambah tema
+## Menambah tema slide
 
-Tambahkan blok `:root[data-theme="nama"]` di `styles.css` dengan variabel warna yang sama, lalu daftarkan di `APP_THEMES` pada `app.jsx`.
+Tambahkan satu entri di `SLIDE_THEMES` pada `app.jsx` dengan kunci warna yang sama seperti tema lain (`paper`, `header`, `bars`, `target`, dan seterusnya). Tema otomatis muncul di pemilih.
