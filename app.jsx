@@ -143,6 +143,12 @@ const rpc = async (fn, body, tok) => {
 const salesNames = () => rpc('lp_sales_names');
 const salesLogin = (name, pass) => rpc('lp_sales_login', { p_name: name, p_pass: pass });
 const salesSave = (name, pass, slide) => rpc('lp_sales_save', { p_name: name, p_pass: pass, p_sales: slide });
+const salesLog = (name, pass, action) => rpc('lp_sales_log', { p_name: name, p_pass: pass, p_action: action }).catch(() => false);
+async function loadActivity(tok) {
+  const r = await fetch(SB_BASE + '/rest/v1/lp_activity?select=*&order=last_at.desc&limit=200', { headers: sbHead(tok) });
+  if (!r.ok) throw new Error('act ' + r.status);
+  return r.json();
+}
 
 const tokenToSession = (j, email) => ({ role: 'admin', email: email || (j.user && j.user.email) || '', access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 });
 async function adminLogin(email, password) {
@@ -196,7 +202,7 @@ const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 
 const semOf = (T) => (lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
-const GLASS = { backdropFilter: 'blur(14px) saturate(1.4)', WebkitBackdropFilter: 'blur(14px) saturate(1.4)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 16px 30px -18px rgba(10,30,70,0.45)' };
+const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
 
 /* Hiasan latar: bola 3D di belakang kartu kaca. Ditandai data-m supaya ikut berpindah saat Morph. */
 function Deco({ T, kind }) {
@@ -761,7 +767,7 @@ function ConfirmDialog({ dlg, onClose }) {
         <p id="dlg-b" className="mb-0 mt-2 text-sm text-[var(--muted)]">{dlg.body}</p>
         <div className="mt-5 flex justify-end gap-2">
           <button ref={ref} type="button" className={TOP_BTN} onClick={onClose}>Batal</button>
-          <button type="button" className="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+          <button type="button" className={'inline-flex items-center rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ' + (dlg.tone === 'neutral' ? 'bg-[var(--accent)] hover:brightness-110 focus-visible:ring-[var(--accent)]' : 'bg-red-600 hover:bg-red-700 focus-visible:ring-red-500')}
             onClick={() => { onClose(); dlg.onConfirm(); }}>{dlg.confirm || 'Ya, hapus'}</button>
         </div>
       </div>
@@ -769,16 +775,131 @@ function ConfirmDialog({ dlg, onClose }) {
   );
 }
 
-function Editor({ session, getToken, initialDeck, onLogout }) {
+/* Riwayat aktivitas sales dan progres pengisian (khusus admin) */
+const fmtWaktu = (iso) => { try { return new Date(iso).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); } catch (e) { return ''; } };
+function describeChange(key, v) {
+  const [dari, ke, label] = v; const p = key.split('|'); const q = (t) => (t ? '“' + t + '”' : 'kosong');
+  if (key === 'catatan') return `Catatan: ${q(dari)} → ${q(ke)}`;
+  if (p[0] === 'nilai') { const { y, m } = parseKey(p[1]); return `${BULAN_PENDEK[m]} ${y} · ${label || 'Brand'} · ${p[3] === 'target' ? 'Target' : 'Total'}: ${rp(dari) || 'kosong'} → ${rp(ke) || 'kosong'}`; }
+  if (p[0] === 'brand') return p[2] === 'baru' ? `Brand baru: ${ke}` : p[2] === 'hapus' ? `Brand dihapus: ${dari}` : `Nama brand: ${dari} → ${ke}`;
+  return key;
+}
+function progressOf(deck) {
+  const keys = monthsOf(deck);
+  return deck.sales.map((s) => {
+    let cells = 0, om = 0, tg = 0;
+    const perMonth = keys.map((k) => {
+      let o = 0, t = 0;
+      s.brands.forEach((b) => { const v = cellOf(s, k, b.id); cells++; if (digits(v.total) !== '') { o++; om++; } if (digits(v.target) !== '') { t++; tg++; } });
+      return { k, c: s.brands.length, o, t };
+    });
+    return { s, cells, om, tg, perMonth };
+  });
+}
+function Bar({ label, n, of }) {
+  const pc = of ? Math.round((n / of) * 100) : 0;
+  return (
+    <div>
+      <div className="flex justify-between text-xs text-[var(--muted)]"><span>{label}</span><span className="font-semibold text-[var(--fg)]">{n}/{of} · {pc}%</span></div>
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-[var(--soft)]"><div className="h-full rounded-full" style={{ width: pc + '%', background: pc === 100 ? '#12a37a' : 'var(--accent)' }} /></div>
+    </div>
+  );
+}
+function ActivityModal({ deck, getToken, onClose }) {
+  const [rows, setRows] = useState(null);
+  const [err, setErr] = useState('');
+  const load = () => { setErr(''); getToken().then(loadActivity).then(setRows).catch(() => setErr('Riwayat belum bisa dimuat.')); };
+  useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  const prog = progressOf(deck);
+  const lastOf = (name, action) => { const r = (rows || []).find((x) => sameName(x.actor, name) && x.action === action); return r ? fmtWaktu(r.last_at || r.at) : '–'; };
+  return (
+    <div className="fixed inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-0 sm:items-center sm:p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Riwayat dan progres" className="flex max-h-[92vh] w-full max-w-3xl flex-col rounded-t-2xl bg-white shadow-xl ring-1 ring-black/5 sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+          <h2 className="head m-0 text-base font-semibold">Riwayat dan progres</h2>
+          <div className="flex gap-2"><button type="button" className="btn" onClick={load}>Muat ulang</button><button type="button" className="btn" onClick={onClose} autoFocus>Tutup</button></div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <h3 className="head m-0 mb-2 text-sm font-semibold">Progres pengisian ({rangeText(deck)})</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {prog.map(({ s, cells, om, tg, perMonth }) => (
+              <div key={s.id} className="rounded-xl border border-[var(--line)] bg-white p-3">
+                <div className="flex items-baseline justify-between gap-2"><span className="font-semibold">{s.name || 'Tanpa nama'}</span><span className="text-xs text-[var(--muted)]">{s.brands.length} brand</span></div>
+                <div className="mt-2 grid gap-2"><Bar label="Omzet terisi" n={om} of={cells} /><Bar label="Target terisi" n={tg} of={cells} /></div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {perMonth.map((m) => <span key={m.k} className="rounded-full bg-[var(--soft)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{BULAN_PENDEK[parseKey(m.k).m]} {m.o}/{m.c} · {m.t}/{m.c}</span>)}
+                </div>
+                <div className="mt-2 text-xs text-[var(--muted)]">Masuk terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'masuk')}</b> · Edit terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'edit')}</b></div>
+              </div>
+            ))}
+          </div>
+          <p className="mb-0 mt-1 text-[11px] text-[var(--muted)]">Per bulan: omzet terisi · target terisi, dari jumlah brand.</p>
+          <h3 className="head mb-2 mt-5 text-sm font-semibold">Aktivitas terbaru</h3>
+          {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
+          {!rows && !err && <div className="text-sm text-[var(--muted)]">Memuat…</div>}
+          {rows && rows.length === 0 && <div className="text-sm text-[var(--muted)]">Belum ada aktivitas sales.</div>}
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {(rows || []).map((r) => {
+              const ch = r.action === 'edit' ? Object.entries((r.detail && r.detail.changes) || {}) : [];
+              return (
+                <li key={r.id} className="rounded-xl border border-[var(--line)] bg-white px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <span className="w-28 text-xs text-[var(--muted)]">{fmtWaktu(r.last_at || r.at)}</span>
+                    <b>{r.actor}</b>
+                    <span className={'rounded-full px-2 py-0.5 text-[11px] font-semibold ' + (r.action === 'masuk' ? 'bg-emerald-100 text-emerald-800' : r.action === 'edit' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-700')}>{r.action === 'masuk' ? 'Masuk' : r.action === 'keluar' ? 'Keluar' : 'Edit'}</span>
+                    {ch.length > 0 && <span className="text-xs text-[var(--muted)]">{ch.length} perubahan</span>}
+                  </div>
+                  {ch.length > 0 && (
+                    <ul className="mb-0 mt-1 list-disc pl-[7.5rem] text-xs text-[var(--fg)]">
+                      {ch.slice(0, 8).map(([k, v]) => <li key={k} className="break-words">{describeChange(k, v)}</li>)}
+                      {ch.length > 8 && <li className="list-none text-[var(--muted)]">+{ch.length - 8} perubahan lainnya</li>}
+                    </ul>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Toast({ toast }) {
+  if (!toast) return null;
+  return (
+        <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}>
+          <div className={'toast-in flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-md ' + (toast.kind === 'err' ? 'bg-red-600' : 'bg-slate-900')}>
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{toast.kind === 'err' ? <path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /> : <path d="M5 12l5 5 9-10" />}</svg>
+            {toast.msg}
+          </div>
+        </div>
+  );
+}
+
+function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const isAdmin = session.role === 'admin';
   const mineOf = (d) => d.sales.find((x) => sameName(x.name, session.name));
-  const [deck, setDeck] = useState(() => (isAdmin ? load() : (migrate(initialDeck) || DEFAULT)));
+  const [deck, setDeckRaw] = useState(() => (isAdmin ? load() : (migrate(initialDeck) || DEFAULT)));
+  /* Sales: apa pun yang diubah selain slide miliknya langsung dibatalkan, sehingga tidak ada perubahan yang tampil tetapi tidak tersimpan */
+  const setDeck = (fn) => setDeckRaw((d) => {
+    const n = typeof fn === 'function' ? fn(d) : fn;
+    if (isAdmin) return n;
+    const mine = mineOf(d), nm = mine && n.sales.find((x) => x.id === mine.id);
+    if (!mine || !nm) return d;
+    return { ...d, sales: d.sales.map((x) => (x.id === mine.id ? { ...nm, id: mine.id, name: mine.name } : x)) };
+  });
   const [idx, setIdx] = useState(1);
   const [presenting, setPresenting] = useState(false);
 
   const [sync, setSync] = useState(isAdmin ? 'memuat' : 'tersimpan');
-  const [toast, setToast] = useState(null);
   const [dlg, setDlg] = useState(null);
+  const [showAct, setShowAct] = useState(false);
   const [mk, setMk] = useState(null);
   const [focusReq, setFocusReq] = useState(null);
   const [moreRail, setMoreRail] = useState(false);
@@ -793,13 +914,7 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
 
   useEffect(() => { if (isAdmin) { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} } }, [deck]);
 
-  const notify = (msg, kind) => setToast({ id: Date.now(), msg, kind: kind || 'ok' });
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast((x) => (x && x.id === toast.id ? null : x)), 2600);
-    return () => clearTimeout(t);
-  }, [toast]);
-
+  const retryTimer = useRef(null);
   const doSave = (manual) => (isAdmin
     ? getToken().then((t) => dbSave(deckRef.current, t))
     : (() => {
@@ -807,8 +922,14 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
         if (!me) return Promise.reject(new Error('save'));
         return salesSave(session.name, session.pass, me).then((ok) => { if (!ok) throw new Error('save'); lastOwn.current = snap; });
       })())
-    .then(() => { lastFail.current = false; setSync('tersimpan'); if (manual) notify('Tersimpan di database'); })
-    .catch((err) => { if (err && err.message === 'auth') { onLogout('Sesi habis. Masuk lagi.'); return; } setSync('gagal'); if (manual || !lastFail.current) notify('Gagal menyimpan ke database. Coba lagi.', 'err'); lastFail.current = true; });
+    .then(() => { clearTimeout(retryTimer.current); lastFail.current = false; setSync('tersimpan'); if (manual) notify('Tersimpan di database'); })
+    .catch((err) => { if (err && err.message === 'auth') { onLogout('Sesi habis. Masuk lagi.'); return; } setSync('gagal'); if (manual || !lastFail.current) notify('Gagal menyimpan ke database. Mencoba lagi otomatis.', 'err'); lastFail.current = true; clearTimeout(retryTimer.current); retryTimer.current = setTimeout(() => doSave(false), 6000); });
+  const syncRef = useRef(sync); syncRef.current = sync;
+  useEffect(() => {
+    const h = (e) => { if (syncRef.current === 'gagal' || syncRef.current === 'menyimpan') { e.preventDefault(); e.returnValue = ''; } };
+    window.addEventListener('beforeunload', h);
+    return () => { window.removeEventListener('beforeunload', h); clearTimeout(retryTimer.current); };
+  }, []);
   const saveNow = () => {
     if (!loaded.current) { notify('Belum terhubung ke database. Muat ulang halaman.', 'err'); return; }
     clearTimeout(saveTimer.current);
@@ -833,7 +954,7 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
     const pull = () => salesLogin(session.name, session.pass).then((remote) => {
       if (!remote) { onLogout('Sesi berakhir. Masuk lagi.'); return; }
       const m = migrate(remote); if (!m) return;
-      setDeck((d) => { const mine = mineOf(d); return { ...m, sales: m.sales.map((x) => (mine && x.id === mine.id ? mine : x)) }; });
+      setDeckRaw((d) => { const mine = mineOf(d); return { ...m, sales: m.sales.map((x) => (mine && x.id === mine.id ? mine : x)) }; });
     }).catch(() => {});
     const t = setInterval(pull, 30000);
     const onVis = () => { if (document.visibilityState === 'visible') pull(); };
@@ -964,10 +1085,16 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
   const syncText = sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Belum tersambung ke database' : 'Memuat…';
   const curTheme = SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
 
-  const leave = async () => {
+  const leave = () => ask({
+    title: 'Keluar dari akun?',
+    body: 'Perubahan yang belum tersimpan akan disimpan dulu, lalu kamu kembali ke halaman login.',
+    confirm: 'Ya, keluar', tone: 'neutral', onConfirm: doLeave,
+  });
+  const doLeave = async () => {
     clearTimeout(saveTimer.current);
     if (loaded.current && (isAdmin || JSON.stringify(mineOf(deckRef.current) || null) !== lastOwn.current)) { try { await doSave(false); } catch (e) {} }
-    onLogout();
+    if (!isAdmin) await salesLog(session.name, session.pass, 'keluar');
+    onLogout('', 'Berhasil keluar');
   };
   const labelOf = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
 
@@ -990,6 +1117,7 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
             ))}
           </Menu>}
           {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
+            <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
             <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
               onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
             <MenuItem danger title="Kosongkan semua angka" hint="Hapus total dan target, nama tetap"
@@ -1044,14 +1172,7 @@ function Editor({ session, getToken, initialDeck, onLogout }) {
 
       {presenting && <Present items={items} deck={deck} index={safeIdx} setIndex={setIdx} onExit={() => setPresenting(false)} api={api} />}
       {dlg && <ConfirmDialog dlg={dlg} onClose={() => setDlg(null)} />}
-      {toast && (
-        <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}>
-          <div className={'toast-in flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ' + (toast.kind === 'err' ? 'bg-red-600' : 'bg-slate-900')}>
-            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{toast.kind === 'err' ? <path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /> : <path d="M5 12l5 5 9-10" />}</svg>
-            {toast.msg}
-          </div>
-        </div>
-      )}
+      {showAct && <ActivityModal deck={deck} getToken={getToken} onClose={() => setShowAct(false)} />}
     </div>
   );
 }
@@ -1066,7 +1187,7 @@ function Backdrop() {
   );
 }
 
-function LoginScreen({ onLogin, notice }) {
+function LoginScreen({ onLogin, notice, notify }) {
   const [tab, setTab] = useState('sales');
   const [names, setNames] = useState(null);
   const [name, setName] = useState('');
@@ -1086,13 +1207,14 @@ function LoginScreen({ onLogin, notice }) {
         if (!name) throw new Error('Pilih nama sales dulu');
         const d = await salesLogin(name, pass.trim());
         if (!d) throw new Error('Password salah');
+        salesLog(name, pass.trim(), 'masuk');
         onLogin({ role: 'sales', name, pass: pass.trim() }, d);
       } else {
         if (!email.trim() || !pass) throw new Error('Isi email dan password');
         const sess = await adminLogin(email.trim(), pass);
         onLogin(sess, null);
       }
-    } catch (ex) { setErr(ex.message || 'Gagal masuk. Coba lagi.'); setBusy(false); }
+    } catch (ex) { const m = ex.message || 'Gagal masuk. Coba lagi.'; setErr(m); notify('Gagal masuk: ' + m, 'err'); setBusy(false); }
   };
   const tabBtn = (k, t) => (
     <button type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setErr(''); setPass(''); }}
@@ -1130,7 +1252,14 @@ function App() {
   const [initialDeck, setInitialDeck] = useState(null);
   const [boot, setBoot] = useState(true);
   const [notice, setNotice] = useState('');
+  const [toast, setToast] = useState(null);
   const sessRef = useRef(null);
+  const notify = (msg, kind) => setToast({ id: Date.now() + Math.random(), msg, kind: kind || 'ok' });
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast((x) => (x && x.id === toast.id ? null : x)), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
   useEffect(() => {
     const st = readSession();
     (async () => {
@@ -1147,18 +1276,20 @@ function App() {
     if (x.exp - Date.now() < 60000) { x = await adminRefresh(x); sessRef.current = x; writeSession(x); }
     return x.access;
   };
-  const onLogin = (s, d) => { writeSession(s); sessRef.current = s; setInitialDeck(d); setNotice(''); setSess(s); };
-  const onLogout = (msg) => {
+  const onLogin = (s, d) => { writeSession(s); sessRef.current = s; setInitialDeck(d); setNotice(''); setSess(s); notify(s.role === 'sales' ? `Selamat datang, ${s.name}!` : 'Berhasil masuk sebagai admin'); };
+  const onLogout = (msg, ok) => {
     writeSession(null); sessRef.current = null;
     try { localStorage.removeItem('laporan-penjualan-v2'); } catch (e) {}
     setNotice(typeof msg === 'string' ? msg : ''); setSess(null); setInitialDeck(null);
+    if (ok) notify(ok); else if (msg) notify(msg, 'err');
   };
   return (
     <>
       <Backdrop />
       {boot ? <div className="flex min-h-[60vh] items-center justify-center text-sm text-[var(--muted)]" role="status">Memuat…</div>
-        : sess ? <Editor key={sess.role + (sess.name || sess.email)} session={sess} getToken={getToken} initialDeck={initialDeck} onLogout={onLogout} />
-        : <LoginScreen onLogin={onLogin} notice={notice} />}
+        : sess ? <Editor key={sess.role + (sess.name || sess.email)} session={sess} getToken={getToken} initialDeck={initialDeck} onLogout={onLogout} notify={notify} />
+        : <LoginScreen onLogin={onLogin} notice={notice} notify={notify} />}
+      <Toast toast={toast} />
     </>
   );
 }

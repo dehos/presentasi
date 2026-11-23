@@ -25,6 +25,8 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 
 - **Admin**: login Supabase Auth (email + password). Hanya email yang terdaftar di tabel `lp_admin` yang boleh membaca dan menulis tabel `lp_deck`. Admin bisa mengubah semuanya.
 - **Sales**: pilih nama dari dropdown (diambil dari nama di slide), password = nama huruf kecil tanpa spasi + `123` (contoh: `toni123`). Sales bisa melihat semua slide dan presentasi, tetapi hanya bisa mengubah slide miliknya sendiri (nama, rentang bulan, tema, dan slide sales lain terkunci).
+- **Riwayat dan progres** (menu Data, khusus admin): siapa yang masuk atau keluar, apa yang diedit (nilai lama → baru) beserta jamnya, dan progres pengisian omzet dan target tiap sales per bulan. Edit beruntun dalam 5 menit digabung jadi satu entri. Disimpan di tabel `lp_activity`.
+- Keluar akun memakai dialog konfirmasi; masuk, keluar, dan gagal masuk menampilkan toast. Bila simpan gagal, aplikasi mencoba lagi otomatis tiap 6 detik.
 - Aturan ini ditegakkan di database (fungsi `lp_sales_login`, `lp_sales_save`, `lp_sales_names`, dan RLS), bukan hanya di tampilan.
 - Menambah admin: tambahkan emailnya ke tabel `lp_admin` (akun harus sudah ada di Supabase Auth).
 
