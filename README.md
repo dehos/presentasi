@@ -4,6 +4,7 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 
 ## Fitur
 
+- Tampilan kaca dan 3D (latar gradasi, bola 3D, panel berkaca); dropdown bulan kustom, bukan bawaan browser
 - Slide sampul, satu slide per sales, dan slide penutup
 - Rentang bulan dipilih lewat selector (maksimal 6 bulan)
 - Form Isi data per bulan: pilih bulan, lalu isi total penjualan dan target tiap brand
@@ -18,7 +19,14 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
 - Pemilih tema slide (Langit bawaan, Lautan, Malam, Pasir, dan lainnya)
 - Slide otomatis beralih ke tampilan padat bila brand banyak (5 ke atas); sampai sekitar 24 brand tetap terbaca. Di tampilan paling padat, tiap bulan hanya menampilkan persen capaian dan naik/turun
-- Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`), tanpa login; cadangan di browser (localStorage)
+- Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`); admin memakai cadangan di browser (localStorage)
+
+## Login dan hak akses
+
+- **Admin**: login Supabase Auth (email + password). Hanya email yang terdaftar di tabel `lp_admin` yang boleh membaca dan menulis tabel `lp_deck`. Admin bisa mengubah semuanya.
+- **Sales**: pilih nama dari dropdown (diambil dari nama di slide), password = nama huruf kecil tanpa spasi + `123` (contoh: `toni123`). Sales bisa melihat semua slide dan presentasi, tetapi hanya bisa mengubah slide miliknya sendiri (nama, rentang bulan, tema, dan slide sales lain terkunci).
+- Aturan ini ditegakkan di database (fungsi `lp_sales_login`, `lp_sales_save`, `lp_sales_names`, dan RLS), bukan hanya di tampilan.
+- Menambah admin: tambahkan emailnya ke tabel `lp_admin` (akun harus sudah ada di Supabase Auth).
 
 ## Menjalankan
 
@@ -46,4 +54,4 @@ Tambahkan satu entri di `SLIDE_THEMES` pada `app.jsx` dengan kunci warna yang sa
 
 ## Database
 
-Isi deck disimpan sebagai satu baris JSON di tabel `public.lp_deck` (id `utama`) pada Supabase. Aplikasi membaca saat dibuka dan menyimpan otomatis sekitar 1 detik setelah perubahan. Tidak ada login, jadi siapa pun yang punya alamat halaman ini bisa melihat dan mengubah data. Jika koneksi gagal, aplikasi menampilkan peringatan dan tidak menimpa data di database.
+Isi deck disimpan sebagai satu baris JSON di tabel `public.lp_deck` (id `utama`) pada Supabase. Aplikasi membaca saat dibuka dan menyimpan otomatis sekitar 1 detik setelah perubahan. Tabel hanya bisa diakses admin yang login; sales lewat fungsi database yang memeriksa password. Jika koneksi gagal, aplikasi menampilkan peringatan dan tidak menimpa data di database.

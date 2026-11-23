@@ -107,24 +107,57 @@ function load() {
   return DEFAULT;
 }
 
-/* Penyimpanan database (Supabase). Kunci publishable memang dirancang untuk dipakai di browser;
-   akses dibatasi oleh aturan RLS pada tabel lp_deck (satu baris, id 'utama'). */
-const SB_URL = 'https://lebwxqkbpjqqszzvmnas.supabase.co/rest/v1/lp_deck';
+/* Database dan login (Supabase). Kunci publishable memang dirancang untuk dipakai di browser.
+   Admin: login Supabase Auth (email + password), hanya email di tabel lp_admin yang boleh membaca/menulis tabel lp_deck.
+   Sales: fungsi database lp_sales_* yang memeriksa password di server dan hanya mengubah slide milik sales itu. */
+const SB_BASE = 'https://lebwxqkbpjqqszzvmnas.supabase.co';
+const SB_URL = SB_BASE + '/rest/v1/lp_deck';
 const SB_KEY = 'sb_publishable_-ZI4t9ZuLF9LuIee8W_7Fg_EUrgXFat';
-const sbHead = { apikey: SB_KEY, 'Content-Type': 'application/json' };
-async function dbLoad() {
-  const r = await fetch(SB_URL + '?id=eq.utama&select=data', { headers: sbHead });
+const sbHead = (tok) => ({ apikey: SB_KEY, 'Content-Type': 'application/json', ...(tok ? { Authorization: 'Bearer ' + tok } : {}) });
+const SESSION_KEY = 'lp-session';
+const readSession = () => { try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch (e) { return null; } };
+const writeSession = (v) => { try { v ? localStorage.setItem(SESSION_KEY, JSON.stringify(v)) : localStorage.removeItem(SESSION_KEY); } catch (e) {} };
+const sameName = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+
+async function dbLoad(tok) {
+  const r = await fetch(SB_URL + '?id=eq.utama&select=data', { headers: sbHead(tok) });
+  if (r.status === 401 || r.status === 403) throw new Error('auth');
   if (!r.ok) throw new Error('load ' + r.status);
   const rows = await r.json();
   return rows.length ? rows[0].data : null;
 }
-async function dbSave(data) {
+async function dbSave(data, tok) {
   const r = await fetch(SB_URL + '?on_conflict=id', {
     method: 'POST',
-    headers: { ...sbHead, Prefer: 'resolution=merge-duplicates,return=minimal' },
+    headers: { ...sbHead(tok), Prefer: 'resolution=merge-duplicates,return=minimal' },
     body: JSON.stringify({ id: 'utama', data, updated_at: new Date().toISOString() }),
   });
+  if (r.status === 401 || r.status === 403) throw new Error('auth');
   if (!r.ok) throw new Error('save ' + r.status);
+}
+const rpc = async (fn, body, tok) => {
+  const r = await fetch(SB_BASE + '/rest/v1/rpc/' + fn, { method: 'POST', headers: sbHead(tok), body: JSON.stringify(body || {}) });
+  if (!r.ok) throw new Error('rpc ' + fn + ' ' + r.status);
+  return r.json();
+};
+const salesNames = () => rpc('lp_sales_names');
+const salesLogin = (name, pass) => rpc('lp_sales_login', { p_name: name, p_pass: pass });
+const salesSave = (name, pass, slide) => rpc('lp_sales_save', { p_name: name, p_pass: pass, p_sales: slide });
+
+const tokenToSession = (j, email) => ({ role: 'admin', email: email || (j.user && j.user.email) || '', access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 });
+async function adminLogin(email, password) {
+  const r = await fetch(SB_BASE + '/auth/v1/token?grant_type=password', { method: 'POST', headers: sbHead(), body: JSON.stringify({ email, password }) });
+  if (!r.ok) throw new Error('Email atau password salah');
+  const sess = tokenToSession(await r.json(), email);
+  let ok = false;
+  try { ok = (await rpc('lp_is_admin', {}, sess.access)) === true; } catch (e) {}
+  if (!ok) throw new Error('Akun ini bukan admin');
+  return sess;
+}
+async function adminRefresh(sess) {
+  const r = await fetch(SB_BASE + '/auth/v1/token?grant_type=refresh_token', { method: 'POST', headers: sbHead(), body: JSON.stringify({ refresh_token: sess.refresh }) });
+  if (!r.ok) throw new Error('auth');
+  return tokenToSession(await r.json(), sess.email);
 }
 
 function Fit({ children }) {
@@ -161,8 +194,21 @@ const headFont = "'Space Grotesk', system-ui, sans-serif";
 
 const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
 const semOf = (T) => (lum(T.paper) < 0.5
-  ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.05)' }
-  : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || '#ffffff' });
+  ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
+  : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
+const GLASS = { backdropFilter: 'blur(14px) saturate(1.4)', WebkitBackdropFilter: 'blur(14px) saturate(1.4)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 16px 30px -18px rgba(10,30,70,0.45)' };
+
+/* Hiasan latar: bola 3D di belakang kartu kaca. Ditandai data-m supaya ikut berpindah saat Morph. */
+function Deco({ T, kind }) {
+  const spots = kind === 'sales' ? [{ x: 1150, y: 250, s: 230 }, { x: -100, y: 440, s: 210 }]
+    : kind === 'cover' ? [{ x: 930, y: 40, s: 380 }, { x: 800, y: 480, s: 190 }]
+    : [{ x: -90, y: 330, s: 330 }, { x: 960, y: 90, s: 230 }];
+  return spots.map((o, i) => (
+    <div key={i} aria-hidden="true" data-m={`orb${i}`} style={{ position: 'absolute', left: o.x, top: o.y, width: o.s, height: o.s, borderRadius: '50%', zIndex: -1, pointerEvents: 'none', opacity: kind === 'sales' ? 0.55 : 0.8,
+      background: `radial-gradient(circle at 30% 26%, rgba(255,255,255,0.85) 0, rgba(255,255,255,0) 24%), radial-gradient(circle at 36% 32%, ${i ? T.accent : T.bars[1]}, ${i ? T.bars[1] : T.accent})`,
+      boxShadow: `inset -${Math.round(o.s / 14)}px -${Math.round(o.s / 11)}px ${Math.round(o.s / 6)}px rgba(0,0,0,0.2)` }} />
+  ));
+}
 
 function Pct({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
@@ -205,7 +251,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
       {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} data-m={`card-${bi}`} style={{ background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
               style={{ fontFamily: headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
@@ -255,7 +301,8 @@ function SalesSlide({ sales, deck, n, total, pick }) {
   const labW = (compact ? 38 : 48) + (crossYear ? 18 : 0);
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <Deco T={T} kind="sales" />
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, background: T.header, zIndex: -1 }} />
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
@@ -274,7 +321,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
             const ghost = maxV === 0;
             return (
-              <div key={b.id} data-m={`card-${bi}`} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
+              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
@@ -336,7 +383,8 @@ function SalesSlide({ sales, deck, n, total, pick }) {
 function CoverSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <Deco T={T} kind="cover" />
       <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
@@ -357,7 +405,8 @@ function CoverSlide({ deck, ro, api }) {
 function ClosingSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <Deco T={T} kind="closing" />
       <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
@@ -484,23 +533,91 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
   );
 }
 
-function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask }) {
+/* Dropdown kustom (pengganti <select> bawaan browser): bisa dipakai dengan keyboard, daftar tampil lewat portal supaya tidak terpotong. */
+function Select({ id, value, options, onChange, disabled, placeholder, className }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
+  const [act, setAct] = useState(0);
+  const btn = useRef(null), list = useRef(null);
+  const cur = options.find((o) => o.key === value);
+  const close = () => setOpen(false);
+  const openIt = () => {
+    if (disabled || !btn.current) return;
+    const r = btn.current.getBoundingClientRect();
+    const vw = document.documentElement.clientWidth, vh = window.innerHeight;
+    const w = Math.min(Math.max(r.width, 170), vw - 16);
+    const left = Math.min(Math.max(8, r.left), vw - w - 8);
+    const below = vh - r.bottom - 12, above = r.top - 12;
+    const up = below < 220 && above > below;
+    setPos({ left, w, maxH: Math.max(120, Math.min(300, up ? above : below)), top: up ? undefined : r.bottom + 6, bottom: up ? vh - r.top + 6 : undefined });
+    setAct(Math.max(0, options.findIndex((o) => o.key === value)));
+    setOpen(true);
+  };
+  useEffect(() => {
+    if (!open) return;
+    const inside = (e) => (list.current && list.current.contains(e.target)) || (btn.current && btn.current.contains(e.target));
+    const down = (e) => { if (!inside(e)) close(); };
+    const scr = (e) => { if (!(list.current && list.current.contains(e.target))) close(); };
+    document.addEventListener('mousedown', down); document.addEventListener('touchstart', down, { passive: true });
+    window.addEventListener('resize', close); window.addEventListener('scroll', scr, true);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('touchstart', down); window.removeEventListener('resize', close); window.removeEventListener('scroll', scr, true); };
+  }, [open]);
+  useEffect(() => { if (open && list.current && list.current.children[act]) list.current.children[act].scrollIntoView({ block: 'nearest' }); }, [open, act]);
+  const choose = (i) => { const o = options[i]; if (o) onChange(o.key); close(); if (btn.current) btn.current.focus(); };
+  const onKey = (e) => {
+    if (!open) { if (['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(e.key)) { e.preventDefault(); openIt(); } return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setAct((a) => Math.min(options.length - 1, a + 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setAct((a) => Math.max(0, a - 1)); }
+    else if (e.key === 'Home') { e.preventDefault(); setAct(0); }
+    else if (e.key === 'End') { e.preventDefault(); setAct(options.length - 1); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(act); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); }
+    else if (e.key === 'Tab') close();
+  };
+  const popup = open && pos && ReactDOM.createPortal(
+    <ul ref={list} role="listbox" className="pop-glass" style={{ position: 'fixed', zIndex: 80, left: pos.left, width: pos.w, maxHeight: pos.maxH, top: pos.top, bottom: pos.bottom, overflowY: 'auto', margin: 0, padding: 4, listStyle: 'none' }}>
+      {options.map((o, i) => (
+        <li key={o.key} role="option" aria-selected={o.key === value}
+          onMouseDown={(e) => e.preventDefault()} onClick={() => choose(i)} onMouseEnter={() => setAct(i)}
+          className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-sm"
+          style={{ background: i === act ? 'var(--soft)' : 'transparent', fontWeight: o.key === value ? 600 : 400, color: 'var(--fg)' }}>
+          <span className="truncate">{o.label}</span>
+          {o.key === value && <svg className="h-4 w-4 shrink-0 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
+        </li>
+      ))}
+    </ul>, document.body);
+  return (
+    <>
+      <button ref={btn} id={id} type="button" role="combobox" aria-haspopup="listbox" aria-expanded={open} disabled={disabled}
+        onClick={() => (open ? close() : openIt())} onKeyDown={onKey}
+        className={'field flex items-center justify-between gap-2 text-left ' + (disabled ? 'opacity-60 cursor-default ' : 'cursor-pointer ') + (className || '')}>
+        <span className={'truncate ' + (cur ? '' : 'text-[var(--muted)]')}>{cur ? cur.label : (placeholder || 'Pilih')}</span>
+        <Chevron />
+      </button>
+      {popup}
+    </>
+  );
+}
+
+function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask, perm }) {
+  const ro = !perm.edit, adm = perm.admin;
   return (
     <aside className="shrink-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 flex flex-col gap-3 lg:w-[22rem] lg:overflow-y-auto">
       <div className="head font-semibold text-base">Isi data</div>
+      {ro && <div className="rounded-md bg-[var(--soft)] px-3 py-2 text-xs text-[var(--muted)]">{item.kind === 'sales' ? `Slide ini milik ${item.sales.name || 'sales lain'}. Kamu hanya bisa melihatnya.` : 'Bagian ini hanya bisa diubah admin.'}</div>}
 
       {item.kind === 'cover' && (
         <>
-          <div><label className="lbl" htmlFor="c-title">Judul</label><input id="c-title" className="field" value={deck.cover.title} onChange={(e) => api.setCover({ title: e.target.value })} /></div>
-          <div><label className="lbl" htmlFor="c-per">Periode</label><input id="c-per" className="field" value={periodOf(deck)} onChange={(e) => api.setCover({ period: e.target.value })} /></div>
-          <div><label className="lbl" htmlFor="c-sub">Subjudul</label><input id="c-sub" className="field" value={deck.cover.sub} onChange={(e) => api.setCover({ sub: e.target.value })} /></div>
-          <div><label className="lbl" htmlFor="c-aud">Untuk siapa</label><input id="c-aud" className="field" value={deck.cover.audience} onChange={(e) => api.setCover({ audience: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="c-title">Judul</label><input disabled={ro} id="c-title" className="field" value={deck.cover.title} onChange={(e) => api.setCover({ title: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="c-per">Periode</label><input disabled={ro} id="c-per" className="field" value={periodOf(deck)} onChange={(e) => api.setCover({ period: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="c-sub">Subjudul</label><input disabled={ro} id="c-sub" className="field" value={deck.cover.sub} onChange={(e) => api.setCover({ sub: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="c-aud">Untuk siapa</label><input disabled={ro} id="c-aud" className="field" value={deck.cover.audience} onChange={(e) => api.setCover({ audience: e.target.value })} /></div>
         </>
       )}
       {item.kind === 'closing' && (
         <>
-          <div><label className="lbl" htmlFor="x-title">Judul</label><input id="x-title" className="field" value={deck.closing.title} onChange={(e) => api.setClosing({ title: e.target.value })} /></div>
-          <div><label className="lbl" htmlFor="x-sub">Subjudul</label><input id="x-sub" className="field" value={deck.closing.sub} onChange={(e) => api.setClosing({ sub: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="x-title">Judul</label><input disabled={ro} id="x-title" className="field" value={deck.closing.title} onChange={(e) => api.setClosing({ title: e.target.value })} /></div>
+          <div><label className="lbl" htmlFor="x-sub">Subjudul</label><input disabled={ro} id="x-sub" className="field" value={deck.closing.sub} onChange={(e) => api.setClosing({ sub: e.target.value })} /></div>
         </>
       )}
 
@@ -511,14 +628,12 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
         return (
           <>
             <div className="flex items-end gap-2">
-              <div className="min-w-0 flex-1"><label className="lbl" htmlFor="s-name">Nama sales</label><input id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
+              <div className="min-w-0 flex-1"><label className="lbl" htmlFor="s-name">Nama sales</label><input disabled={ro || !adm} id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
               <div className="w-[7.25rem] shrink-0">
                 <label className="lbl" htmlFor="s-month">Bulan</label>
-                <select id="s-month" className="field" value={ck} onChange={(e) => setMk(e.target.value)}>
-                  {keys.map((k) => <option key={k} value={k}>{BULAN[parseKey(k).m]}</option>)}
-                </select>
+                <Select id="s-month" value={ck} onChange={setMk} options={keys.map((k) => ({ key: k, label: BULAN[parseKey(k).m] }))} />
               </div>
-              <button type="button" className="btn btn-primary shrink-0" onClick={onSave}>Simpan</button>
+              {!ro && <button type="button" className="btn btn-primary shrink-0" onClick={onSave}>Simpan</button>}
             </div>
 
             <div className="head font-semibold">{BULAN[parseKey(ck).m]} {parseKey(ck).y}</div>
@@ -528,42 +643,42 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
               return (
                 <div key={b.id} className="rounded-md border border-[var(--line)] p-2 flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <input id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
-                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={s.brands.length === 1}
+                    <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
+                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={ro || s.brands.length === 1}
                       onClick={() => ask({ title: `Hapus ${b.name || 'brand ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus</button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
-                      <input id={`v-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.total)} onChange={(e) => api.setCell(s.id, ck, b.id, { total: digits(e.target.value) })} />
+                      <input disabled={ro} id={`v-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.total)} onChange={(e) => api.setCell(s.id, ck, b.id, { total: digits(e.target.value) })} />
                     </div>
                     <div>
                       <label className="lbl" htmlFor={`t-${b.id}-${ck}`}>Target</label>
-                      <input id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
+                      <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
                     </div>
                   </div>
                   {st.pct != null && <div className="text-xs text-[var(--muted)]">Capaian {Math.round(st.pct)}% dari target</div>}
                 </div>
               );
             })}
-            <button className="btn" onClick={() => api.addBrand(s.id)}>+ Brand</button>
-            <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
+            <button className="btn" disabled={ro} onClick={() => api.addBrand(s.id)}>+ Brand</button>
+            <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea disabled={ro} id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
 
             <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
               <div className="text-xs text-[var(--muted)]">Berlaku untuk semua slide sales (maksimal {MAX_BULAN} bulan)</div>
               <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
                 <label className="lbl" style={{ margin: 0 }} htmlFor="r-from">Dari</label>
-                <select id="r-from" className="field" value={deck.range.from} onChange={(e) => api.setRange('from', e.target.value)}>{MONTH_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+                <Select id="r-from" disabled={ro || !adm} value={deck.range.from} onChange={(v) => api.setRange('from', v)} options={MONTH_OPTIONS} />
                 <label className="lbl" style={{ margin: 0 }} htmlFor="r-to">Sampai</label>
-                <select id="r-to" className="field" value={keys[keys.length - 1]} onChange={(e) => api.setRange('to', e.target.value)}>{MONTH_OPTIONS.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+                <Select id="r-to" disabled={ro || !adm} value={keys[keys.length - 1]} onChange={(v) => api.setRange('to', v)} options={MONTH_OPTIONS} />
               </div>
-              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
+              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input disabled={ro || !adm} id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
             </div>
-            <div className="grid grid-cols-3 gap-2">
+            {adm && <div className="grid grid-cols-3 gap-2">
               <button className="btn" onClick={() => onMove(-1)} disabled={idx <= 1}>Naik</button>
               <button className="btn" onClick={() => onMove(1)} disabled={idx >= count - 2}>Turun</button>
               <button className="btn btn-danger" onClick={onDelete} disabled={deck.sales.length === 1}>Hapus</button>
-            </div>
+            </div>}
           </>
         );
       })()}
@@ -654,25 +769,29 @@ function ConfirmDialog({ dlg, onClose }) {
   );
 }
 
-function App() {
-  const [deck, setDeck] = useState(load);
+function Editor({ session, getToken, initialDeck, onLogout }) {
+  const isAdmin = session.role === 'admin';
+  const mineOf = (d) => d.sales.find((x) => sameName(x.name, session.name));
+  const [deck, setDeck] = useState(() => (isAdmin ? load() : (migrate(initialDeck) || DEFAULT)));
   const [idx, setIdx] = useState(1);
   const [presenting, setPresenting] = useState(false);
 
-  const [sync, setSync] = useState('memuat');
+  const [sync, setSync] = useState(isAdmin ? 'memuat' : 'tersimpan');
   const [toast, setToast] = useState(null);
   const [dlg, setDlg] = useState(null);
   const [mk, setMk] = useState(null);
   const [focusReq, setFocusReq] = useState(null);
   const [moreRail, setMoreRail] = useState(false);
-  const loaded = useRef(false);
+  const loaded = useRef(!isAdmin);
+  const lastOwn = useRef(null);
+  if (lastOwn.current === null && !isAdmin) lastOwn.current = JSON.stringify(mineOf(deck) || null);
   const deckRef = useRef(deck);
   deckRef.current = deck;
   const saveTimer = useRef(null);
   const lastFail = useRef(false);
   const railRef = useRef(null);
 
-  useEffect(() => { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} }, [deck]);
+  useEffect(() => { if (isAdmin) { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} } }, [deck]);
 
   const notify = (msg, kind) => setToast({ id: Date.now(), msg, kind: kind || 'ok' });
   useEffect(() => {
@@ -681,9 +800,15 @@ function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const doSave = (manual) => dbSave(deckRef.current)
+  const doSave = (manual) => (isAdmin
+    ? getToken().then((t) => dbSave(deckRef.current, t))
+    : (() => {
+        const me = mineOf(deckRef.current), snap = JSON.stringify(me || null);
+        if (!me) return Promise.reject(new Error('save'));
+        return salesSave(session.name, session.pass, me).then((ok) => { if (!ok) throw new Error('save'); lastOwn.current = snap; });
+      })())
     .then(() => { lastFail.current = false; setSync('tersimpan'); if (manual) notify('Tersimpan di database'); })
-    .catch(() => { setSync('gagal'); if (manual || !lastFail.current) notify('Gagal menyimpan ke database. Coba lagi.', 'err'); lastFail.current = true; });
+    .catch((err) => { if (err && err.message === 'auth') { onLogout('Sesi habis. Masuk lagi.'); return; } setSync('gagal'); if (manual || !lastFail.current) notify('Gagal menyimpan ke database. Coba lagi.', 'err'); lastFail.current = true; });
   const saveNow = () => {
     if (!loaded.current) { notify('Belum terhubung ke database. Muat ulang halaman.', 'err'); return; }
     clearTimeout(saveTimer.current);
@@ -692,17 +817,33 @@ function App() {
   };
 
   useEffect(() => {
-    dbLoad().then((remote) => {
+    if (!isAdmin) return;
+    getToken().then((t) => dbLoad(t)).then((remote) => {
       const m = migrate(remote);
       if (m) setDeck(m);
       loaded.current = true;
       setSync(m ? 'tersimpan' : 'menyimpan');
       if (!m) setDeck((d) => ({ ...d }));
-    }).catch(() => { setSync('gagal'); });
+    }).catch((err) => { if (err && err.message === 'auth') onLogout('Sesi habis. Masuk lagi.'); else setSync('gagal'); });
+  }, []);
+
+  /* Sales: ambil perubahan slide lain secara berkala; slide milik sendiri tidak ditimpa */
+  useEffect(() => {
+    if (isAdmin) return;
+    const pull = () => salesLogin(session.name, session.pass).then((remote) => {
+      if (!remote) { onLogout('Sesi berakhir. Masuk lagi.'); return; }
+      const m = migrate(remote); if (!m) return;
+      setDeck((d) => { const mine = mineOf(d); return { ...m, sales: m.sales.map((x) => (mine && x.id === mine.id ? mine : x)) }; });
+    }).catch(() => {});
+    const t = setInterval(pull, 30000);
+    const onVis = () => { if (document.visibilityState === 'visible') pull(); };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVis); };
   }, []);
 
   useEffect(() => {
     if (!loaded.current) return;
+    if (!isAdmin) { const me = mineOf(deck); if (!me || JSON.stringify(me) === lastOwn.current) return; }
     setSync('menyimpan');
     clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(() => doSave(false), 600);
@@ -776,7 +917,7 @@ function App() {
     if (presenting) return;
     const onKey = (e) => {
       const tag = (e.target.tagName || '').toLowerCase();
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select' || e.target.getAttribute('role') === 'combobox') return;
       if (e.key === 'ArrowDown' || e.key === 'ArrowRight') setIdx((i) => Math.min(items.length - 1, i + 1));
       if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') setIdx((i) => Math.max(0, i - 1));
     };
@@ -785,7 +926,8 @@ function App() {
   }, [presenting, items.length]);
 
   const ask = (o) => setDlg(o);
-  const pick = (t) => { if (t.month) setMk(t.month); setFocusReq({ id: t.id, n: Date.now() }); };
+  const canEdit = (it) => isAdmin || (it.kind === 'sales' && sameName(it.sales.name, session.name));
+  const pick = (t) => { if (!isAdmin && (t.id === 's-name' || t.id === 'g-sub')) return; if (t.month) setMk(t.month); setFocusReq({ id: t.id, n: Date.now() }); };
   useEffect(() => {
     if (!focusReq) return;
     const el = document.getElementById(focusReq.id);
@@ -822,6 +964,11 @@ function App() {
   const syncText = sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Belum tersambung ke database' : 'Memuat…';
   const curTheme = SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
 
+  const leave = async () => {
+    clearTimeout(saveTimer.current);
+    if (loaded.current && (isAdmin || JSON.stringify(mineOf(deckRef.current) || null) !== lastOwn.current)) { try { await doSave(false); } catch (e) {} }
+    onLogout();
+  };
   const labelOf = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
 
   return (
@@ -832,24 +979,30 @@ function App() {
           <span role="status" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
             <span className={'h-1.5 w-1.5 rounded-full ' + syncDot} />{syncText}
           </span>
+          <span className="hidden max-w-[16rem] items-center truncate rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] md:inline-flex">
+            {isAdmin ? 'Admin · ' + session.email : 'Sales · ' + session.name}
+          </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Menu icon={<Swatch T={curTheme} />} label={<>Tema<span className="hidden sm:inline">: {curTheme.name}</span></>} width={240}>
+          {isAdmin && <Menu icon={<Swatch T={curTheme} />} label={<><span className="sr-only sm:not-sr-only">Tema</span><span className="hidden sm:inline">: {curTheme.name}</span></>} width={240}>
             {Object.entries(SLIDE_THEMES).map(([k, t]) => (
               <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === deck.slideTheme} onClick={() => api.setSlideTheme(k)} />
             ))}
-          </Menu>
-          <Menu icon={<DataIcon />} label="Data" width={288}>
+          </Menu>}
+          {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
             <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
               onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
             <MenuItem danger title="Kosongkan semua angka" hint="Hapus total dan target, nama tetap"
               onClick={() => ask({ title: 'Kosongkan semua angka?', body: 'Total dan target semua sales di semua bulan akan dihapus. Nama sales dan brand tetap.', confirm: 'Kosongkan', onConfirm: clearNums })} />
             <MenuItem danger title="Setel ulang" hint="Kembali ke data awal"
               onClick={() => ask({ title: 'Setel ulang semua data?', body: 'Semua sales, brand, angka, dan catatan kembali ke data awal.', confirm: 'Setel ulang', onConfirm: resetAll })} />
-          </Menu>
+          </Menu>}
           <button type="button" onClick={() => setPresenting(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
             <PlayIcon /><span className="sm:hidden">Presentasi</span><span className="hidden sm:inline">Mulai presentasi</span>
+          </button>
+          <button type="button" className={TOP_BTN} onClick={leave} title="Keluar dari akun">
+            <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg><span className="sr-only sm:not-sr-only">Keluar</span>
           </button>
         </div>
       </header>
@@ -864,7 +1017,7 @@ function App() {
                 <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}</div>
               </button>
             ))}
-            <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>
+            {isAdmin && <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>}
           </nav>
           {moreRail && (
             <>
@@ -881,11 +1034,11 @@ function App() {
 
         <main className="flex-1 min-w-0 flex flex-col gap-2">
           <div className="w-full aspect-video lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-2">
-            <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} pick={cur.kind === 'sales' ? pick : undefined} /></Fit>
+            <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} pick={cur.kind === 'sales' && canEdit(cur) ? pick : undefined} /></Fit>
           </div>
         </main>
 
-        <Panel item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask}
+        <Panel perm={{ edit: canEdit(cur), admin: isAdmin }} item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask}
           onDelete={() => ask({ title: `Hapus slide ${cur.kind === 'sales' ? (cur.sales.name || 'ini') : ''}?`.replace('  ', ' '), body: 'Semua brand, angka, dan catatan pada slide ini ikut terhapus.', confirm: 'Hapus slide', onConfirm: delSales })} />
       </div>
 
@@ -900,6 +1053,113 @@ function App() {
         </div>
       )}
     </div>
+  );
+}
+
+
+/* Latar belakang: gradasi lembut dan bola 3D mengambang di belakang kaca */
+function Backdrop() {
+  return (
+    <div aria-hidden="true" className="backdrop">
+      <span className="orb orb-a" /><span className="orb orb-b" /><span className="orb orb-c" />
+    </div>
+  );
+}
+
+function LoginScreen({ onLogin, notice }) {
+  const [tab, setTab] = useState('sales');
+  const [names, setNames] = useState(null);
+  const [name, setName] = useState('');
+  const [pass, setPass] = useState('');
+  const [email, setEmail] = useState('');
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState(notice || '');
+  useEffect(() => { salesNames().then((n) => setNames(Array.isArray(n) ? n : [])).catch(() => setNames([])); }, []);
+  const submit = async (e) => {
+    e.preventDefault();
+    setErr('');
+    if (busy) return;
+    setBusy(true);
+    try {
+      if (tab === 'sales') {
+        if (!name) throw new Error('Pilih nama sales dulu');
+        const d = await salesLogin(name, pass.trim());
+        if (!d) throw new Error('Password salah');
+        onLogin({ role: 'sales', name, pass: pass.trim() }, d);
+      } else {
+        if (!email.trim() || !pass) throw new Error('Isi email dan password');
+        const sess = await adminLogin(email.trim(), pass);
+        onLogin(sess, null);
+      }
+    } catch (ex) { setErr(ex.message || 'Gagal masuk. Coba lagi.'); setBusy(false); }
+  };
+  const tabBtn = (k, t) => (
+    <button type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setErr(''); setPass(''); }}
+      className={'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ' + (tab === k ? 'seg-on' : 'text-[var(--muted)] hover:text-[var(--fg)]')}>{t}</button>
+  );
+  return (
+    <div className="flex min-h-[85vh] items-center justify-center py-6">
+      <form onSubmit={submit} className="glass-card w-full max-w-sm p-6 flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="logo-orb" aria-hidden="true" />
+          <div><h1 className="head m-0 text-xl font-bold leading-tight">Laporan Penjualan</h1><p className="m-0 text-xs text-[var(--muted)]">Masuk untuk melihat dan mengisi laporan</p></div>
+        </div>
+        <div role="tablist" aria-label="Jenis akun" className="seg flex gap-1 p-1">{tabBtn('sales', 'Sales')}{tabBtn('admin', 'Admin')}</div>
+        {tab === 'sales' ? (
+          <div><label className="lbl" htmlFor="l-name">Nama sales</label>
+            <Select id="l-name" value={name} onChange={setName} placeholder={names === null ? 'Memuat daftar…' : names.length ? 'Pilih nama' : 'Daftar belum tersedia'} options={(names || []).map((n) => ({ key: n, label: n }))} /></div>
+        ) : (
+          <div><label className="lbl" htmlFor="l-email">Email</label>
+            <input id="l-email" className="field" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+        )}
+        <div><label className="lbl" htmlFor="l-pass">Password</label>
+          <div className="relative">
+            <input id="l-pass" className="field pr-16" type={show ? 'text' : 'password'} autoComplete={tab === 'admin' ? 'current-password' : 'off'} autoCapitalize="none" value={pass} onChange={(e) => setPass(e.target.value)} />
+            <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--soft)]">{show ? 'Sembunyi' : 'Lihat'}</button>
+          </div></div>
+        {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</div>}
+        <button type="submit" disabled={busy} className="btn btn-primary btn-gloss w-full py-2.5 text-base font-semibold">{busy ? 'Masuk…' : 'Masuk'}</button>
+      </form>
+    </div>
+  );
+}
+
+function App() {
+  const [sess, setSess] = useState(null);
+  const [initialDeck, setInitialDeck] = useState(null);
+  const [boot, setBoot] = useState(true);
+  const [notice, setNotice] = useState('');
+  const sessRef = useRef(null);
+  useEffect(() => {
+    const st = readSession();
+    (async () => {
+      try {
+        if (st && st.role === 'sales') { const d = await salesLogin(st.name, st.pass); if (d) { sessRef.current = st; setInitialDeck(d); setSess(st); } else writeSession(null); }
+        else if (st && st.role === 'admin') { let x = st; if (x.exp - Date.now() < 60000) x = await adminRefresh(x); writeSession(x); sessRef.current = x; setSess(x); }
+      } catch (e) { writeSession(null); }
+      setBoot(false);
+    })();
+  }, []);
+  const getToken = async () => {
+    let x = sessRef.current;
+    if (!x) throw new Error('auth');
+    if (x.exp - Date.now() < 60000) { x = await adminRefresh(x); sessRef.current = x; writeSession(x); }
+    return x.access;
+  };
+  const onLogin = (s, d) => { writeSession(s); sessRef.current = s; setInitialDeck(d); setNotice(''); setSess(s); };
+  const onLogout = (msg) => {
+    writeSession(null); sessRef.current = null;
+    try { localStorage.removeItem('laporan-penjualan-v2'); } catch (e) {}
+    setNotice(typeof msg === 'string' ? msg : ''); setSess(null); setInitialDeck(null);
+  };
+  return (
+    <>
+      <Backdrop />
+      {boot ? <div className="flex min-h-[60vh] items-center justify-center text-sm text-[var(--muted)]" role="status">Memuat…</div>
+        : sess ? <Editor key={sess.role + (sess.name || sess.email)} session={sess} getToken={getToken} initialDeck={initialDeck} onLogout={onLogout} />
+        : <LoginScreen onLogin={onLogin} notice={notice} />}
+    </>
   );
 }
 

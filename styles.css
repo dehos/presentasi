@@ -1,7 +1,7 @@
 /* Tampilan aplikasi: tema putih. Tema slide dipilih di aplikasi dan didefinisikan di app.jsx (SLIDE_THEMES). */
 :root {
-  --bg: #f4f6f8; --panel: #ffffff; --line: #dde2e8; --fg: #111827; --muted: #5b6676;
-  --accent: #0b84f3; --accent-fg: #ffffff; --soft: #e6f1fd; --danger: #c0372b;
+  --bg: #eef3fb; --panel: rgba(255,255,255,.58); --line: rgba(110,130,175,.28); --fg: #0f1a2e; --muted: #536079;
+  --accent: #1478f0; --accent-fg: #ffffff; --soft: rgba(70,130,235,.13); --danger: #c0372b;
   color-scheme: light;
 }
 
@@ -50,3 +50,53 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 .toast-in { animation: toastIn .2s ease-out; }
 @media (prefers-reduced-motion: reduce) { .toast-in { animation: none; } }
+
+/* ===== Kaca dan 3D ===== */
+body { background: #eef3fb; }
+.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(60rem 38rem at 8% -8%, #c4e0ff 0, transparent 62%),
+    radial-gradient(52rem 40rem at 104% 4%, #e6d6ff 0, transparent 58%),
+    radial-gradient(50rem 38rem at 86% 108%, #bdf2e2 0, transparent 58%),
+    radial-gradient(42rem 30rem at -4% 102%, #ffe6cf 0, transparent 58%),
+    #eef3fb; }
+.orb { position: absolute; border-radius: 50%;
+  background: radial-gradient(circle at 30% 27%, rgba(255,255,255,.95) 0, rgba(255,255,255,0) 22%), radial-gradient(circle at 36% 32%, var(--o1) 0, var(--o2) 62%, var(--o3) 100%);
+  box-shadow: inset -14px -18px 36px rgba(20,30,90,.22), 0 34px 60px -24px var(--o3); opacity: .62; animation: floaty 16s ease-in-out infinite; }
+.orb-a { --o1: #8cc4ff; --o2: #4f8cf5; --o3: #2f55d4; width: 17rem; height: 17rem; left: -8rem; top: 22%; }
+.orb-b { --o1: #d2b8ff; --o2: #9c7cf0; --o3: #6a45d0; width: 12rem; height: 12rem; right: 6%; top: -3rem; animation-delay: -5s; animation-duration: 19s; }
+.orb-c { --o1: #9af0d6; --o2: #3fc9a4; --o3: #1c9a7c; width: 14rem; height: 14rem; right: -3rem; bottom: 6%; animation-delay: -9s; animation-duration: 21s; }
+@keyframes floaty { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,-22px,0) scale(1.03); } }
+@media (max-width: 640px) { .orb-a { width: 11rem; height: 11rem; } .orb-b { width: 8rem; height: 8rem; } .orb-c { width: 9rem; height: 9rem; } }
+@media (prefers-reduced-motion: reduce) { .orb { animation: none; } }
+
+/* panel kaca (kelas Tailwind yang sudah dipakai di aplikasi) */
+.bg-\[var\(--panel\)\] { backdrop-filter: blur(18px) saturate(1.6); -webkit-backdrop-filter: blur(18px) saturate(1.6);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.85), 0 14px 34px -18px rgba(30,50,110,.38); }
+.bg-\[var\(--soft\)\] { backdrop-filter: blur(10px); }
+.glass-card { background: linear-gradient(160deg, rgba(255,255,255,.78), rgba(255,255,255,.46)); border: 1px solid rgba(255,255,255,.85); border-radius: 22px;
+  backdrop-filter: blur(24px) saturate(1.7); -webkit-backdrop-filter: blur(24px) saturate(1.7);
+  box-shadow: inset 0 1px 0 #fff, 0 40px 70px -34px rgba(30,50,120,.5), 0 10px 22px -12px rgba(30,50,120,.25); }
+.pop-glass { background: rgba(255,255,255,.86); border: 1px solid rgba(255,255,255,.9); border-radius: 14px;
+  backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  box-shadow: 0 24px 50px -16px rgba(30,50,120,.45), 0 4px 12px rgba(30,50,120,.12); }
+.logo-orb { width: 46px; height: 46px; flex: none; border-radius: 50%;
+  background: radial-gradient(circle at 30% 26%, #fff 0, rgba(255,255,255,0) 26%), radial-gradient(circle at 38% 34%, #7db8ff, #3b6fe8 60%, #2a3fb5);
+  box-shadow: inset -6px -8px 14px rgba(15,25,90,.35), 0 12px 20px -8px rgba(47,85,212,.7); }
+.seg { background: rgba(80,110,170,.12); border-radius: 12px; box-shadow: inset 0 1px 3px rgba(30,50,110,.15); }
+.seg-on { background: linear-gradient(180deg, #fff, #f1f5fc); color: var(--fg); box-shadow: 0 1px 0 #fff inset, 0 3px 8px -2px rgba(30,50,110,.3); }
+
+/* tombol bervolume */
+.btn { background: linear-gradient(180deg, rgba(255,255,255,.95), rgba(235,241,251,.8)); border-color: rgba(120,140,185,.35);
+  box-shadow: inset 0 1px 0 #fff, 0 1px 0 rgba(100,120,170,.25), 0 6px 12px -6px rgba(30,50,110,.35); }
+.btn:hover { background: linear-gradient(180deg, #fff, rgba(222,235,252,.95)); }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(.99); box-shadow: inset 0 2px 4px rgba(30,50,110,.2); }
+.btn-primary { background: linear-gradient(180deg, #4a9bff, #1478f0 55%, #0f62d0); border-color: #0f62d0; color: #fff;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 8px 16px -8px rgba(20,120,240,.8); }
+.btn-primary:hover { background: linear-gradient(180deg, #5aa6ff, #2282f3 55%, #1469dd); filter: none; }
+.btn-gloss { background-image: linear-gradient(180deg, rgba(255,255,255,.34), rgba(255,255,255,0) 52%); box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 8px 16px -8px rgba(20,120,240,.8); }
+
+.field { background: rgba(255,255,255,.72); border-color: rgba(120,140,185,.38); box-shadow: inset 0 1px 2px rgba(30,50,110,.08); }
+.field:focus { background: #fff; }
+.field:disabled { opacity: .6; cursor: not-allowed; }
+@supports not (backdrop-filter: blur(1px)) { :root { --panel: rgba(255,255,255,.9); } .pop-glass { background: #fff; } }
