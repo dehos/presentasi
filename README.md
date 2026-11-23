@@ -14,6 +14,7 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Konfirmasi sebelum menghapus brand, slide, atau mengosongkan data
 - Tambah, hapus, dan urutkan slide sales; tambah atau hapus brand per sales
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
+- Transisi Morph seperti PowerPoint di mode presentasi: judul, header, kartu brand, dan catatan berpindah posisi, ukuran, dan warna dari slide ke slide (elemen ber-nama sama ditandai `data-m` di `app.jsx`); menghormati pengaturan "kurangi gerakan" di perangkat
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
 - Pemilih tema slide (Langit bawaan, Lautan, Malam, Pasir, dan lainnya)
 - Slide otomatis beralih ke tampilan padat bila brand banyak (5 ke atas); sampai sekitar 24 brand tetap terbaca. Di tampilan paling padat, tiap bulan hanya menampilkan persen capaian dan naik/turun

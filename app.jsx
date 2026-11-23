@@ -175,10 +175,10 @@ function Trend({ v, sem, muted, small }) {
   return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap', fontSize: small ? '0.9em' : undefined }}>{up ? (small ? '▲' : '▲ ') : down ? (small ? '▼' : '▼ ') : ''}{small ? Math.round(Math.abs(v)) : fmt1(Math.abs(v))}%</span>;
 }
 
-function Hit({ pick, target, style, label, children }) {
-  if (!pick) return <div style={style}>{children}</div>;
+function Hit({ pick, target, style, label, children, m, mt }) {
+  if (!pick) return <div data-m={m} data-mt={mt} style={style}>{children}</div>;
   return (
-    <div className="hit" role="button" tabIndex={0} aria-label={label} style={style} onClick={() => pick(target)}
+    <div className="hit" data-m={m} data-mt={mt} role="button" tabIndex={0} aria-label={label} style={style} onClick={() => pick(target)}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(target); } }}>{children}</div>
   );
 }
@@ -202,10 +202,10 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   const nameH = ultra ? 22 : 26;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: cardH, gap }}>
-      {sales.brands.map((b) => {
+      {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} style={{ background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} data-m={`card-${bi}`} style={{ background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
               style={{ fontFamily: headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
@@ -255,12 +255,13 @@ function SalesSlide({ sales, deck, n, total, pick }) {
   const labW = (compact ? 38 : 48) + (crossYear ? 18 : 0);
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
-    <div style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
-      <div style={{ height: 100, background: T.header, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
-        <Hit pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
+      <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+        <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, background: T.header, zIndex: -1 }} />
+        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
-        <Hit pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
           {sublineOf(deck)}
         </Hit>
       </div>
@@ -273,7 +274,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
             const ghost = maxV === 0;
             return (
-              <div key={b.id} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
+              <div key={b.id} data-m={`card-${bi}`} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
@@ -309,7 +310,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
           })}
         </div>
         )}
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
+        <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
           {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.bars[1] }} />Total penjualan</span>}
           {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>}
           <span>% = capaian dari target</span>
@@ -317,7 +318,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 21, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
+      <div data-m="note" style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 21, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
         <Hit pick={pick} target={{ id: 's-note' }} label="Ubah catatan" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3 }}>
             <span style={{ color: T.muted }}>Catatan dari </span>
@@ -335,18 +336,18 @@ function SalesSlide({ sales, deck, n, total, pick }) {
 function CoverSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
-      <div style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
-      <div style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+      <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
+      <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
       </div>
-      <div style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
+      <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
         <Ed ro={ro} value={periodOf(deck)} label="Periode" onChange={(v) => api.setCover({ period: v })} />
       </div>
-      <div style={{ fontSize: 28, color: T.coverMuted, marginTop: 12 }}>
+      <div data-m="sub2" data-mt="l" style={{ fontSize: 28, color: T.coverMuted, marginTop: 12 }}>
         <Ed ro={ro} value={deck.cover.sub} label="Subjudul" onChange={(v) => api.setCover({ sub: v })} />
       </div>
-      <div style={{ position: 'absolute', left: 96, right: 96, bottom: 56, fontSize: 24, color: T.coverMuted }}>
+      <div data-m="aud" data-mt="l" style={{ position: 'absolute', left: 96, right: 96, bottom: 56, fontSize: 24, color: T.coverMuted }}>
         <Ed ro={ro} value={deck.cover.audience} label="Untuk siapa" onChange={(v) => api.setCover({ audience: v })} />
       </div>
     </div>
@@ -356,12 +357,12 @@ function CoverSlide({ deck, ro, api }) {
 function ClosingSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-      <div style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
-      <div style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+      <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
+      <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
       </div>
-      <div style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
+      <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
         <Ed ro={ro} value={deck.closing.sub} label="Subjudul penutup" onChange={(v) => api.setClosing({ sub: v })} />
       </div>
     </div>
@@ -372,6 +373,66 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
   return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
+}
+
+
+/* Transisi Morph (seperti PowerPoint): elemen ber-nama sama (data-m) berpindah posisi, ukuran, dan warna dari slide sebelumnya ke slide berikutnya.
+   Elemen tanpa pasangan memudar keluar atau masuk. */
+const MORPH_MS = 700, MORPH_EASE = 'cubic-bezier(.65,0,.35,1)';
+function morphMeasure(stage, scope) {
+  const sr = stage.getBoundingClientRect(); const sc = sr.width / W || 1; const info = {};
+  scope.querySelectorAll('[data-m]').forEach((el) => {
+    const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+    info[el.dataset.m] = { x: (r.left - sr.left) / sc, y: (r.top - sr.top) / sc, w: r.width / sc, h: r.height / sc, fs: parseFloat(cs.fontSize) || 16, bg: cs.backgroundColor, color: cs.color, t: el.dataset.mt || null };
+  });
+  return info;
+}
+/* Transformasi agar elemen E (di rect sendiri) tampak seperti berada di rect C */
+function morphTf(E, C) {
+  if (E.t) {
+    const r = E.t === 'r', sc = (C.fs / E.fs) || 1;
+    const dx = r ? (C.x + C.w) - (E.x + E.w) : C.x - E.x;
+    return { tf: `translate(${dx}px,${C.y - E.y}px) scale(${sc})`, org: r ? 'right top' : 'left top' };
+  }
+  return { tf: `translate(${C.x - E.x}px,${C.y - E.y}px) scale(${(C.w / E.w) || 1},${(C.h / E.h) || 1})`, org: 'left top' };
+}
+function useMorph(stageRef, slideRef, ovRef, depKey) {
+  const snap = useRef(null);
+  useLayoutEffect(() => {
+    const stage = stageRef.current, slide = slideRef.current, ov = ovRef.current;
+    if (!stage || !slide || !ov) return;
+    try { slide.getAnimations({ subtree: true }).forEach((a) => a.cancel()); } catch (e) {}
+    ov.innerHTML = '';
+    const root = slide.firstElementChild;
+    const cur = morphMeasure(stage, slide);
+    const prev = snap.current;
+    snap.current = { node: root.cloneNode(true), info: cur };
+    let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
+    if (!prev || reduce || !root.animate) return;
+    const old = prev.node; old.style.position = 'absolute'; old.style.left = '0'; old.style.top = '0'; old.style.background = 'transparent';
+    ov.appendChild(old);
+    const D = MORPH_MS;
+    if (prev.info.bg && cur.bg) root.animate([{ backgroundColor: prev.info.bg.bg }, { backgroundColor: cur.bg.bg }], { duration: D, easing: MORPH_EASE });
+    old.querySelectorAll('[data-m]').forEach((oe) => {
+      const k = oe.dataset.m; if (k === 'bg') return;
+      const o = prev.info[k], n = cur[k];
+      if (!n) { oe.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 300, easing: 'ease-out', fill: 'forwards' }); return; }
+      const ne = slide.querySelector(`[data-m="${k}"]`); if (!ne) return;
+      const same = oe.innerHTML === ne.innerHTML;
+      const a = morphTf(n, o), b = morphTf(o, n);
+      ne.style.transformOrigin = a.org; oe.style.transformOrigin = b.org;
+      ne.animate([{ transform: a.tf, backgroundColor: o.bg, color: o.color }, { transform: 'none', backgroundColor: n.bg, color: n.color }], { duration: D, easing: MORPH_EASE });
+      if (same) { oe.style.visibility = 'hidden'; return; }
+      oe.animate([{ transform: 'none', backgroundColor: o.bg, color: o.color, opacity: 1 }, { transform: b.tf, backgroundColor: n.bg, color: n.color, opacity: 0 }], { duration: D, easing: MORPH_EASE, fill: 'forwards' });
+      ne.animate([{ opacity: 0 }, { opacity: 0, offset: 0.35 }, { opacity: 1 }], { duration: D, easing: 'linear' });
+    });
+    slide.querySelectorAll('[data-m]').forEach((ne) => {
+      if (ne.dataset.m === 'bg' || prev.info[ne.dataset.m]) return;
+      ne.animate([{ opacity: 0 }, { opacity: 0, offset: 0.45 }, { opacity: 1 }], { duration: D, easing: 'ease-out' });
+    });
+    const t = setTimeout(() => { ov.innerHTML = ''; }, D + 80);
+    return () => clearTimeout(t);
+  }, [depKey]);
 }
 
 const fmtTime = (sec) => String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
@@ -398,11 +459,18 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
   }, [go, onExit]);
   const it = items[index];
   const T = themeOf(deck);
+  const stageRef = useRef(null), slideRef = useRef(null), ovRef = useRef(null);
+  useMorph(stageRef, slideRef, ovRef, it.key);
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#000' }}>
       <div style={{ height: 3, background: '#222' }}><div style={{ height: 3, width: `${((index + 1) / total) * 100}%`, background: T.accent, transition: 'width .25s' }} /></div>
       <div className="flex-1 min-h-0 cursor-pointer" onClick={() => go((c) => c + 1)}>
-        <Fit><div key={it.key} className="slide-in"><SlideView item={it} deck={deck} n={index + 1} total={total} ro api={api} /></div></Fit>
+        <Fit>
+          <div ref={stageRef} style={{ position: 'relative', width: W, height: H }}>
+            <div ref={slideRef} key={it.key}><SlideView item={it} deck={deck} n={index + 1} total={total} ro api={api} /></div>
+            <div ref={ovRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }} />
+          </div>
+        </Fit>
       </div>
       <div className="flex items-center justify-between gap-3 px-4 py-2 text-sm" style={{ background: '#0a0d13', color: '#c5cce0', paddingBottom: 'max(8px, env(safe-area-inset-bottom, 0px))' }}>
         <div className="flex items-center gap-2">
