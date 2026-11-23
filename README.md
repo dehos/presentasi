@@ -15,7 +15,8 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Tambah, hapus, dan urutkan slide sales; tambah atau hapus brand per sales
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
-- Pemilih tema slide: Navy dan teal, Remotion gelap, Putih bersih, Ungu, Senja
+- Pemilih tema slide (Langit bawaan, Lautan, Malam, Pasir, dan lainnya)
+- Slide otomatis beralih ke tampilan padat bila brand banyak (5 ke atas); sampai sekitar 24 brand tetap terbaca. Di tampilan paling padat, tiap bulan hanya menampilkan persen capaian dan naik/turun
 - Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`), tanpa login; cadangan di browser (localStorage)
 
 ## Menjalankan

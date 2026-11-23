@@ -164,15 +164,15 @@ const semOf = (T) => (lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.05)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || '#ffffff' });
 
-function Pct({ v, sem, muted }) {
+function Pct({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
   const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
-  return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: '2px 10px', fontWeight: 600 }}>{Math.round(v)}%</span>;
+  return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: small ? '1px 5px' : '2px 10px', fontWeight: 600, fontSize: small ? '0.86em' : undefined }}>{Math.round(v)}%</span>;
 }
-function Trend({ v, sem, muted }) {
+function Trend({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
   const up = v > 0.05, down = v < -0.05;
-  return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap' }}>{up ? '▲ ' : down ? '▼ ' : ''}{fmt1(Math.abs(v))}%</span>;
+  return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap', fontSize: small ? '0.9em' : undefined }}>{up ? (small ? '▲' : '▲ ') : down ? (small ? '▼' : '▼ ') : ''}{small ? Math.round(Math.abs(v)) : fmt1(Math.abs(v))}%</span>;
 }
 
 function Hit({ pick, target, style, label, children }) {
@@ -183,6 +183,64 @@ function Hit({ pick, target, style, label, children }) {
   );
 }
 
+/* Tampilan padat untuk banyak brand: grid kartu kecil tanpa grafik, ukuran menyesuaikan jumlah brand dan bulan. */
+function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
+  const nb = sales.brands.length;
+  const gap = 12, availH = 470;
+  const layout = (cols) => {
+    const rowsN = Math.ceil(nb / cols);
+    const cardH = Math.floor((availH - gap * (rowsN - 1)) / rowsN);
+    return { cols, rowsN, cardH, raw: Math.floor((cardH - 20 - 26 - 4) / keys.length) };
+  };
+  let L = layout(nb <= 8 ? 4 : 5);
+  const ultra = L.raw < 15;
+  if (ultra && nb > 20) L = layout(6);
+  const { cols, rowsN, cardH } = L;
+  const rowH = Math.max(15, Math.min(34, L.raw));
+  const fs = Math.max(12, Math.min(17, Math.floor(rowH * 0.62)));
+  const nameFs = ultra ? 16 : rowsN >= 3 ? 19 : 22;
+  const nameH = ultra ? 22 : 26;
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: cardH, gap }}>
+      {sales.brands.map((b) => {
+        const st = keys.map((k) => statsOf(sales, k, b.id, keys));
+        return (
+          <div key={b.id} style={{ background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
+            <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
+              style={{ fontFamily: headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
+              {b.name || 'Nama brand'}
+            </Hit>
+            {ultra ? (
+              <div style={{ display: 'flex', gap: 2 }}>
+                {keys.map((k, i) => {
+                  const c = st[i].pct == null ? T.muted : st[i].pct >= 100 ? sem.good : st[i].pct >= 80 ? sem.warn : sem.bad;
+                  const tr = st[i].trend, tc = tr == null ? T.muted : tr > 0.05 ? sem.good : tr < -0.05 ? sem.bad : T.muted;
+                  return (
+                    <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
+                      style={{ flex: 1, minWidth: 0, textAlign: 'center', lineHeight: 1.25, borderRadius: 4 }}>
+                      <div style={{ fontSize: 11, color: T.muted, height: 14, overflow: 'hidden' }}>{BULAN_PENDEK[parseKey(k).m]}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: c, height: 17, whiteSpace: 'nowrap', letterSpacing: '-0.02em' }}>{st[i].pct == null ? '–' : Math.round(st[i].pct)}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: tc, height: 14, whiteSpace: 'nowrap' }}>{i === 0 || tr == null ? '' : (tr > 0.05 ? '▲' : tr < -0.05 ? '▼' : '') + Math.round(Math.abs(tr))}</div>
+                    </Hit>
+                  );
+                })}
+              </div>
+            ) : keys.map((k, i) => (
+              <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
+                style={{ display: 'flex', alignItems: 'center', gap: 5, height: rowH, fontSize: fs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+                <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
+                <span style={{ width: 44, flex: 'none', textAlign: 'right' }}><Pct small v={st[i].pct} sem={sem} muted={T.muted} /></span>
+                <span style={{ width: 46, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend small v={st[i].trend} sem={sem} muted={T.muted} />}</span>
+              </Hit>
+            ))}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function SalesSlide({ sales, deck, n, total, pick }) {
   const T = themeOf(deck);
   const sem = semOf(T);
@@ -190,6 +248,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
   const nb = sales.brands.length;
   const compact = nb > 3;
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
+  const dense = nb >= 5 || (nb === 4 && crossYear);
   const chartH = keys.length <= 3 ? 215 : keys.length <= 4 ? 175 : 140;
   const rowH = keys.length <= 3 ? 42 : keys.length <= 4 ? 38 : 33;
   const rowFs = nb > 4 ? 15 : compact ? 16 : 17;
@@ -207,6 +266,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
       </div>
 
       <div style={{ padding: '22px 48px 0' }}>
+        {dense ? <DenseGrid sales={sales} keys={keys} T={T} sem={sem} pick={pick} short={short} labW={crossYear ? 52 : 32} /> : (
         <div style={{ display: 'flex', gap: 16 }}>
           {sales.brands.map((b, bi) => {
             const st = keys.map((k) => statsOf(sales, k, b.id, keys));
@@ -214,7 +274,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             const ghost = maxV === 0;
             return (
               <div key={b.id} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
-                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10 }}>
+                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
@@ -248,9 +308,10 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             );
           })}
         </div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.bars[1] }} />Total penjualan</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
+          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.bars[1] }} />Total penjualan</span>}
+          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>}
           <span>% = capaian dari target</span>
           <span>▲ ▼ = dibanding bulan sebelumnya</span>
         </div>
@@ -451,22 +512,38 @@ const Swatch = ({ T }) => <span className="inline-block h-4 w-4 shrink-0 rounded
 
 function Menu({ icon, label, children, width }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState(null);
   const ref = useRef(null);
+  const btn = useRef(null);
+  const wantW = width || 240;
+  const toggle = () => {
+    if (!open && btn.current) {
+      const r = btn.current.getBoundingClientRect();
+      const vw = document.documentElement.clientWidth;
+      const w = Math.min(wantW, vw - 16);
+      setPos({ left: Math.max(8, Math.min(r.right - w, vw - w - 8)), top: r.bottom + 8, w });
+    }
+    setOpen((o) => !o);
+  };
   useEffect(() => {
     if (!open) return;
+    const close = () => setOpen(false);
     const down = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     const key = (e) => { if (e.key === 'Escape') setOpen(false); };
     document.addEventListener('mousedown', down);
     document.addEventListener('keydown', key);
-    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); window.removeEventListener('resize', close); window.removeEventListener('scroll', close, true); };
   }, [open]);
   return (
     <div ref={ref} className="relative">
-      <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={TOP_BTN}>
+      <button ref={btn} type="button" aria-haspopup="menu" aria-expanded={open} onClick={toggle} className={TOP_BTN}>
         {icon}<span>{label}</span><Chevron />
       </button>
-      {open && (
-        <div role="menu" onClick={() => setOpen(false)} className={'absolute right-0 z-40 mt-2 origin-top-right rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5 shadow-lg ring-1 ring-black/5 ' + (width || 'w-60')}>
+      {open && pos && (
+        <div role="menu" onClick={() => setOpen(false)} style={{ position: 'fixed', left: pos.left, top: pos.top, width: pos.w }}
+          className="z-50 rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5 shadow-lg ring-1 ring-black/5">
           {children}
         </div>
       )}
@@ -689,12 +766,12 @@ function App() {
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Menu icon={<Swatch T={curTheme} />} label={<>Tema<span className="hidden sm:inline">: {curTheme.name}</span></>} width="w-60">
+          <Menu icon={<Swatch T={curTheme} />} label={<>Tema<span className="hidden sm:inline">: {curTheme.name}</span></>} width={240}>
             {Object.entries(SLIDE_THEMES).map(([k, t]) => (
               <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === deck.slideTheme} onClick={() => api.setSlideTheme(k)} />
             ))}
           </Menu>
-          <Menu icon={<DataIcon />} label="Data" width="w-72">
+          <Menu icon={<DataIcon />} label="Data" width={288}>
             <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
               onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
             <MenuItem danger title="Kosongkan semua angka" hint="Hapus total dan target, nama tetap"
