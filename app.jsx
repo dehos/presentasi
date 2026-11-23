@@ -51,9 +51,10 @@ const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penj
 const mkBrand = (name) => ({ id: uid(), name });
 const mkSales = (name) => ({ id: uid(), name, brands: [mkBrand('Brand A'), mkBrand('Brand B'), mkBrand('Brand C')], data: {}, note: '' });
 const cellOf = (sales, key, bid) => (sales.data && sales.data[key] && sales.data[key][bid]) || { total: '', target: '' };
-function statsOf(sales, key, bid) {
+function statsOf(sales, key, bid, keys) {
   const c = cellOf(sales, key, bid);
-  const total = toNum(c.total), target = toNum(c.target), prev = toNum(cellOf(sales, prevKey(key), bid).total);
+  const hasPrev = !!keys && keys.includes(prevKey(key));
+  const total = toNum(c.total), target = toNum(c.target), prev = hasPrev ? toNum(cellOf(sales, prevKey(key), bid).total) : null;
   return {
     total, target,
     pct: total != null && target ? (total / target) * 100 : null,
@@ -174,7 +175,15 @@ function Trend({ v, sem, muted }) {
   return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap' }}>{up ? '▲ ' : down ? '▼ ' : ''}{fmt1(Math.abs(v))}%</span>;
 }
 
-function SalesSlide({ sales, deck, n, total, ro, api }) {
+function Hit({ pick, target, style, label, children }) {
+  if (!pick) return <div style={style}>{children}</div>;
+  return (
+    <div className="hit" role="button" tabIndex={0} aria-label={label} style={style} onClick={() => pick(target)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(target); } }}>{children}</div>
+  );
+}
+
+function SalesSlide({ sales, deck, n, total, pick }) {
   const T = themeOf(deck);
   const sem = semOf(T);
   const keys = monthsOf(deck);
@@ -189,34 +198,35 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
   return (
     <div style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden' }}>
       <div style={{ height: 100, background: T.header, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
-        <div style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
-          <Ed ro={ro} value={sales.name} placeholder="Nama sales" label="Nama sales" onChange={(v) => api.setSales(sales.id, { name: v })} />
-        </div>
-        <div style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
-          <Ed ro={ro} value={sublineOf(deck)} label="Keterangan periode" onChange={api.setSubline} />
-        </div>
+        <Hit pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
+          {sales.name || 'Nama sales'}
+        </Hit>
+        <Hit pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+          {sublineOf(deck)}
+        </Hit>
       </div>
 
       <div style={{ padding: '22px 48px 0' }}>
         <div style={{ display: 'flex', gap: 16 }}>
           {sales.brands.map((b, bi) => {
-            const st = keys.map((k) => statsOf(sales, k, b.id));
+            const st = keys.map((k) => statsOf(sales, k, b.id, keys));
             const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
             const ghost = maxV === 0;
             return (
               <div key={b.id} style={{ flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
-                <div style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10 }}>
-                  <Ed ro={ro} value={b.name} placeholder="Nama brand" label="Nama brand" onChange={(x) => api.setBrand(sales.id, b.id, x)} />
-                </div>
+                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10 }}>
+                  {b.name || 'Nama brand'}
+                </Hit>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
                   {st.map((x, i) => {
                     const h = ghost ? GHOST[(bi * 3 + i) % 9] * chartH * 0.8 : ((x.total || 0) / maxV) * (chartH - 10);
                     const th = !ghost && x.target ? (x.target / maxV) * (chartH - 10) : null;
                     return (
-                      <div key={keys[i]} style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
+                      <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
+                        style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
                         <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : T.bars[1], border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: '5px 5px 0 0' }} />
                         {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
-                      </div>
+                      </Hit>
                     );
                   })}
                 </div>
@@ -225,12 +235,13 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {keys.map((k, i) => (
-                    <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+                    <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
                       <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                       <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : compact ? fmtCompact(st[i].total) : rp(st[i].total)}</span>
                       <span style={{ width: compact ? 54 : 64, flex: 'none', textAlign: 'right' }}><Pct v={st[i].pct} sem={sem} muted={T.muted} /></span>
-                      <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}><Trend v={st[i].trend} sem={sem} muted={T.muted} /></span>
-                    </div>
+                      <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
+                    </Hit>
                   ))}
                 </div>
               </div>
@@ -245,9 +256,15 @@ function SalesSlide({ sales, deck, n, total, ro, api }) {
         </div>
       </div>
 
-      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 22, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
-        <span style={{ color: T.muted, flex: 'none' }}>Catatan</span>
-        <div style={{ flex: 1, minWidth: 0 }}><Ed ro={ro} value={sales.note} placeholder="Kendala atau rencana tindak lanjut" label="Catatan" onChange={(v) => api.setSales(sales.id, { note: v })} /></div>
+      <div style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 21, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
+        <Hit pick={pick} target={{ id: 's-note' }} label="Ubah catatan" style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3 }}>
+            <span style={{ color: T.muted }}>Catatan dari </span>
+            <span style={{ fontWeight: 600 }}>{sales.name || 'sales'}</span>
+            <span style={{ color: T.muted }}>: </span>
+            {sales.note ? <span>“{sales.note}”</span> : <span style={{ color: T.muted, fontStyle: 'italic' }}>belum ada catatan</span>}
+          </div>
+        </Hit>
         <span style={{ color: T.muted, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
       </div>
     </div>
@@ -290,10 +307,10 @@ function ClosingSlide({ deck, ro, api }) {
   );
 }
 
-function SlideView({ item, deck, n, total, ro, api }) {
+function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
-  return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} ro={ro} api={api} />;
+  return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
 }
 
 const fmtTime = (sec) => String(Math.floor(sec / 60)).padStart(2, '0') + ':' + String(sec % 60).padStart(2, '0');
@@ -338,10 +355,9 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
   );
 }
 
-function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
-  const [mk, setMk] = useState(null);
+function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask }) {
   return (
-    <aside className="lg:w-80 shrink-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 flex flex-col gap-3 lg:overflow-y-auto">
+    <aside className="shrink-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 flex flex-col gap-3 lg:w-[22rem] lg:overflow-y-auto">
       <div className="head font-semibold text-base">Isi data</div>
 
       {item.kind === 'cover' && (
@@ -363,29 +379,29 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
         const s = item.sales;
         const keys = monthsOf(deck);
         const ck = keys.includes(mk) ? mk : keys[0];
-        const { y: cy } = parseKey(ck);
         return (
           <>
-            <div><label className="lbl" htmlFor="s-name">Nama sales</label><input id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
-
-            <div>
-              <div className="lbl">Pilih bulan</div>
-              <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Bulan">
-                {keys.map((k) => (
-                  <button key={k} role="tab" aria-selected={k === ck} className={'btn ' + (k === ck ? 'btn-primary' : '')} style={{ padding: '4px 10px' }} onClick={() => setMk(k)}>{BULAN[parseKey(k).m]}</button>
-                ))}
+            <div className="flex items-end gap-2">
+              <div className="min-w-0 flex-1"><label className="lbl" htmlFor="s-name">Nama sales</label><input id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
+              <div className="w-[7.25rem] shrink-0">
+                <label className="lbl" htmlFor="s-month">Bulan</label>
+                <select id="s-month" className="field" value={ck} onChange={(e) => setMk(e.target.value)}>
+                  {keys.map((k) => <option key={k} value={k}>{BULAN[parseKey(k).m]}</option>)}
+                </select>
               </div>
+              <button type="button" className="btn btn-primary shrink-0" onClick={onSave}>Simpan</button>
             </div>
 
-            <div className="head font-semibold">{BULAN[parseKey(ck).m]} {cy}</div>
+            <div className="head font-semibold">{BULAN[parseKey(ck).m]} {parseKey(ck).y}</div>
             {s.brands.map((b) => {
               const c = cellOf(s, ck, b.id);
-              const st = statsOf(s, ck, b.id);
+              const st = statsOf(s, ck, b.id, keys);
               return (
                 <div key={b.id} className="rounded-md border border-[var(--line)] p-2 flex flex-col gap-2">
                   <div className="flex gap-2">
-                    <input aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
-                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={s.brands.length === 1} onClick={() => api.delBrand(s.id, b.id)}>Hapus</button>
+                    <input id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
+                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={s.brands.length === 1}
+                      onClick={() => ask({ title: `Hapus ${b.name || 'brand ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus</button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -397,9 +413,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
                       <input id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
                     </div>
                   </div>
-                  <div className="text-xs text-[var(--muted)]">
-                    Capaian {st.pct == null ? '–' : Math.round(st.pct) + '%'} · Dibanding bulan lalu {st.trend == null ? '–' : (st.trend > 0 ? '▲ ' : st.trend < 0 ? '▼ ' : '') + fmt1(Math.abs(st.trend)) + '%'}
-                  </div>
+                  {st.pct != null && <div className="text-xs text-[var(--muted)]">Capaian {Math.round(st.pct)}% dari target</div>}
                 </div>
               );
             })}
@@ -428,15 +442,109 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete }) {
   );
 }
 
+const TOP_BTN = 'inline-flex items-center gap-2 rounded-lg border border-[var(--line)] bg-[var(--panel)] px-3 py-2 text-sm font-medium text-[var(--fg)] shadow-sm transition hover:bg-[var(--soft)] active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]';
+const Chevron = ({ cls }) => <svg className={cls || 'h-4 w-4 text-[var(--muted)]'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>;
+const ChevronRight = () => <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>;
+const PlayIcon = () => <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 001.5.86l11-6.5a1 1 0 000-1.72l-11-6.5A1 1 0 008 5.5z" /></svg>;
+const DataIcon = () => <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></svg>;
+const Swatch = ({ T }) => <span className="inline-block h-4 w-4 shrink-0 rounded-full ring-1 ring-black/15" style={{ background: `linear-gradient(135deg, ${T.paper} 50%, ${T.accent} 50%)` }} />;
+
+function Menu({ icon, label, children, width }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const down = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const key = (e) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('mousedown', down);
+    document.addEventListener('keydown', key);
+    return () => { document.removeEventListener('mousedown', down); document.removeEventListener('keydown', key); };
+  }, [open]);
+  return (
+    <div ref={ref} className="relative">
+      <button type="button" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((o) => !o)} className={TOP_BTN}>
+        {icon}<span>{label}</span><Chevron />
+      </button>
+      {open && (
+        <div role="menu" onClick={() => setOpen(false)} className={'absolute right-0 z-40 mt-2 origin-top-right rounded-xl border border-[var(--line)] bg-[var(--panel)] p-1.5 shadow-lg ring-1 ring-black/5 ' + (width || 'w-60')}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+function MenuItem({ onClick, icon, title, hint, danger, active }) {
+  return (
+    <button type="button" role="menuitem" onClick={onClick} className={'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-[var(--soft)] focus-visible:outline-none focus-visible:bg-[var(--soft)] ' + (danger ? 'text-[var(--danger)]' : '')}>
+      {icon}
+      <span className="min-w-0 flex-1">
+        <span className={'block font-medium ' + (active ? 'text-[var(--accent)]' : '')}>{title}</span>
+        {hint && <span className="block text-xs font-normal text-[var(--muted)]">{hint}</span>}
+      </span>
+      {active && <svg className="h-4 w-4 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10" /></svg>}
+    </button>
+  );
+}
+
+function ConfirmDialog({ dlg, onClose }) {
+  const ref = useRef(null);
+  useEffect(() => { if (ref.current) ref.current.focus(); }, []);
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="alertdialog" aria-modal="true" aria-labelledby="dlg-t" aria-describedby="dlg-b" className="w-full max-w-sm rounded-2xl bg-[var(--panel)] p-5 shadow-xl ring-1 ring-black/5">
+        <h2 id="dlg-t" className="head m-0 text-base font-semibold">{dlg.title}</h2>
+        <p id="dlg-b" className="mb-0 mt-2 text-sm text-[var(--muted)]">{dlg.body}</p>
+        <div className="mt-5 flex justify-end gap-2">
+          <button ref={ref} type="button" className={TOP_BTN} onClick={onClose}>Batal</button>
+          <button type="button" className="inline-flex items-center rounded-lg bg-red-600 px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+            onClick={() => { onClose(); dlg.onConfirm(); }}>{dlg.confirm || 'Ya, hapus'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [deck, setDeck] = useState(load);
   const [idx, setIdx] = useState(1);
   const [presenting, setPresenting] = useState(false);
 
   const [sync, setSync] = useState('memuat');
+  const [toast, setToast] = useState(null);
+  const [dlg, setDlg] = useState(null);
+  const [mk, setMk] = useState(null);
+  const [focusReq, setFocusReq] = useState(null);
+  const [moreRail, setMoreRail] = useState(false);
   const loaded = useRef(false);
+  const deckRef = useRef(deck);
+  deckRef.current = deck;
+  const saveTimer = useRef(null);
+  const lastFail = useRef(false);
+  const railRef = useRef(null);
 
   useEffect(() => { try { localStorage.setItem('laporan-penjualan-v2', JSON.stringify(deck)); } catch (e) {} }, [deck]);
+
+  const notify = (msg, kind) => setToast({ id: Date.now(), msg, kind: kind || 'ok' });
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast((x) => (x && x.id === toast.id ? null : x)), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const doSave = (manual) => dbSave(deckRef.current)
+    .then(() => { lastFail.current = false; setSync('tersimpan'); if (manual) notify('Tersimpan di database'); })
+    .catch(() => { setSync('gagal'); if (manual || !lastFail.current) notify('Gagal menyimpan ke database. Coba lagi.', 'err'); lastFail.current = true; });
+  const saveNow = () => {
+    if (!loaded.current) { notify('Belum terhubung ke database. Muat ulang halaman.', 'err'); return; }
+    clearTimeout(saveTimer.current);
+    setSync('menyimpan');
+    doSave(true);
+  };
 
   useEffect(() => {
     dbLoad().then((remote) => {
@@ -451,8 +559,9 @@ function App() {
   useEffect(() => {
     if (!loaded.current) return;
     setSync('menyimpan');
-    const id = setTimeout(() => { dbSave(deck).then(() => setSync('tersimpan')).catch(() => setSync('gagal')); }, 800);
-    return () => clearTimeout(id);
+    clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(() => doSave(false), 600);
+    return () => clearTimeout(saveTimer.current);
   }, [deck]);
 
   const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), { kind: 'closing', key: 'closing' }];
@@ -530,51 +639,121 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [presenting, items.length]);
 
+  const ask = (o) => setDlg(o);
+  const pick = (t) => { if (t.month) setMk(t.month); setFocusReq({ id: t.id, n: Date.now() }); };
+  useEffect(() => {
+    if (!focusReq) return;
+    const el = document.getElementById(focusReq.id);
+    if (!el) return;
+    try { el.focus({ preventScroll: true }); } catch (e) {}
+    if (el.select) el.select();
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }, [focusReq]);
+
+  const vertical = () => window.matchMedia('(min-width: 1024px)').matches;
+  const updRail = () => {
+    const el = railRef.current;
+    if (!el) return;
+    const left = vertical() ? el.scrollHeight - el.scrollTop - el.clientHeight : el.scrollWidth - el.scrollLeft - el.clientWidth;
+    setMoreRail(left > 6);
+  };
+  const scrollRail = () => { const el = railRef.current; if (el) el.scrollBy(vertical() ? { top: 260, behavior: 'smooth' } : { left: 240, behavior: 'smooth' }); };
+  useEffect(() => {
+    updRail();
+    const el = railRef.current;
+    const ro = new ResizeObserver(updRail);
+    if (el) ro.observe(el);
+    window.addEventListener('resize', updRail);
+    return () => { ro.disconnect(); window.removeEventListener('resize', updRail); };
+  }, [items.length]);
+  useEffect(() => {
+    const el = railRef.current;
+    const b = el && el.children[safeIdx];
+    if (b && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+  }, [safeIdx]);
+
+  const hasData = deck.sales.some((s) => Object.keys(s.data || {}).length > 0);
+  const syncDot = sync === 'tersimpan' ? 'bg-emerald-500' : sync === 'menyimpan' ? 'bg-amber-500' : sync === 'gagal' ? 'bg-red-500' : 'bg-slate-400';
+  const syncText = sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Belum tersambung ke database' : 'Memuat…';
+  const curTheme = SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
+
   const labelOf = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
 
   return (
     <div className="flex flex-col gap-3 min-h-full lg:h-full">
-      <header className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-3 min-w-0">
-          <h1 className="head text-lg font-bold m-0">Laporan Penjualan</h1>
-          <span role="status" className="text-xs px-2 py-0.5 rounded-full bg-[var(--soft)]" style={{ color: sync === 'gagal' ? 'var(--danger)' : 'var(--muted)' }}>
-            {sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Gagal terhubung, hanya tersimpan di browser' : 'Memuat…'}
+      <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="head m-0 text-lg font-bold">Laporan Penjualan</h1>
+          <span role="status" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+            <span className={'h-1.5 w-1.5 rounded-full ' + syncDot} />{syncText}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <label className="sr-only" htmlFor="slide-theme">Tema slide</label>
-          <select id="slide-theme" className="field" style={{ width: 'auto' }} value={deck.slideTheme} onChange={(e) => api.setSlideTheme(e.target.value)}>
-            {Object.entries(SLIDE_THEMES).map(([k, t]) => <option key={k} value={k}>Tema slide: {t.name}</option>)}
-          </select>
-          <button className="btn" onClick={fillSample}>Isi data contoh</button>
-          <button className="btn" onClick={clearNums}>Kosongkan angka</button>
-          <button className="btn" onClick={resetAll}>Setel ulang</button>
-          <button className="btn btn-primary" onClick={() => setPresenting(true)}>Mulai presentasi</button>
+          <Menu icon={<Swatch T={curTheme} />} label={<>Tema<span className="hidden sm:inline">: {curTheme.name}</span></>} width="w-60">
+            {Object.entries(SLIDE_THEMES).map(([k, t]) => (
+              <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === deck.slideTheme} onClick={() => api.setSlideTheme(k)} />
+            ))}
+          </Menu>
+          <Menu icon={<DataIcon />} label="Data" width="w-72">
+            <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
+              onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
+            <MenuItem danger title="Kosongkan semua angka" hint="Hapus total dan target, nama tetap"
+              onClick={() => ask({ title: 'Kosongkan semua angka?', body: 'Total dan target semua sales di semua bulan akan dihapus. Nama sales dan brand tetap.', confirm: 'Kosongkan', onConfirm: clearNums })} />
+            <MenuItem danger title="Setel ulang" hint="Kembali ke data awal"
+              onClick={() => ask({ title: 'Setel ulang semua data?', body: 'Semua sales, brand, angka, dan catatan kembali ke data awal.', confirm: 'Setel ulang', onConfirm: resetAll })} />
+          </Menu>
+          <button type="button" onClick={() => setPresenting(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
+            <PlayIcon /><span className="sm:hidden">Presentasi</span><span className="hidden sm:inline">Mulai presentasi</span>
+          </button>
         </div>
       </header>
 
       <div className="flex flex-col lg:flex-row gap-3 flex-1 min-h-0">
-        <nav aria-label="Daftar slide" className="lg:w-44 shrink-0 flex lg:flex-col gap-2 overflow-x-auto lg:overflow-x-hidden lg:overflow-y-auto pb-1">
-          {items.map((it, i) => (
-            <button key={it.key} onClick={() => setIdx(i)} aria-current={i === safeIdx}
-              className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]')}>
-              <div className="aspect-video rounded-sm overflow-hidden border border-[var(--line)] pointer-events-none"><Fit><SlideView item={it} deck={deck} n={i + 1} total={items.length} ro api={api} /></Fit></div>
-              <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}</div>
-            </button>
-          ))}
-          <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>
-        </nav>
+        <div className="relative min-w-0 shrink-0 lg:w-44">
+          <nav ref={railRef} onScroll={updRail} aria-label="Daftar slide" className="flex gap-2 overflow-x-auto pb-2 lg:absolute lg:inset-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pb-0">
+            {items.map((it, i) => (
+              <button key={it.key} onClick={() => setIdx(i)} aria-current={i === safeIdx}
+                className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]')}>
+                <div className="aspect-video rounded-sm overflow-hidden border border-[var(--line)] pointer-events-none"><Fit><SlideView item={it} deck={deck} n={i + 1} total={items.length} ro api={api} /></Fit></div>
+                <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}</div>
+              </button>
+            ))}
+            <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>
+          </nav>
+          {moreRail && (
+            <>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-16 lg:hidden" style={{ background: 'linear-gradient(to left, var(--bg) 20%, transparent)' }} />
+              <button type="button" aria-label="Lihat slide berikutnya" onClick={scrollRail}
+                className="absolute right-1 top-[42%] flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--panel)] text-[var(--fg)] shadow-md transition hover:bg-[var(--soft)] lg:hidden"><ChevronRight /></button>
+              <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-16 lg:block" style={{ background: 'linear-gradient(to top, var(--bg) 20%, transparent)' }} />
+              <button type="button" onClick={scrollRail}
+                className="absolute bottom-2 left-1/2 hidden -translate-x-1/2 items-center gap-1 whitespace-nowrap rounded-full border border-[var(--line)] bg-[var(--panel)] px-3 py-1 text-xs font-medium text-[var(--muted)] shadow-md transition hover:bg-[var(--soft)] lg:inline-flex">Slide lainnya <Chevron cls="h-3.5 w-3.5" /></button>
+              <p className="m-0 pt-0.5 text-xs text-[var(--muted)] lg:hidden">Geser ke kanan, masih ada slide lainnya →</p>
+            </>
+          )}
+        </div>
 
         <main className="flex-1 min-w-0 flex flex-col gap-2">
           <div className="w-full aspect-video lg:aspect-auto lg:flex-1 lg:min-h-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-2">
-            <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} /></Fit>
+            <Fit><SlideView item={cur} deck={deck} n={safeIdx + 1} total={items.length} ro={false} api={api} pick={cur.kind === 'sales' ? pick : undefined} /></Fit>
           </div>
         </main>
 
-        <Panel item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} onDelete={delSales} />
+        <Panel item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask}
+          onDelete={() => ask({ title: `Hapus slide ${cur.kind === 'sales' ? (cur.sales.name || 'ini') : ''}?`.replace('  ', ' '), body: 'Semua brand, angka, dan catatan pada slide ini ikut terhapus.', confirm: 'Hapus slide', onConfirm: delSales })} />
       </div>
 
       {presenting && <Present items={items} deck={deck} index={safeIdx} setIndex={setIdx} onExit={() => setPresenting(false)} api={api} />}
+      {dlg && <ConfirmDialog dlg={dlg} onClose={() => setDlg(null)} />}
+      {toast && (
+        <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}>
+          <div className={'toast-in flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-lg ' + (toast.kind === 'err' ? 'bg-red-600' : 'bg-slate-900')}>
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{toast.kind === 'err' ? <path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /> : <path d="M5 12l5 5 9-10" />}</svg>
+            {toast.msg}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,10 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Rentang bulan dipilih lewat selector (maksimal 6 bulan)
 - Form Isi data per bulan: pilih bulan, lalu isi total penjualan dan target tiap brand
 - Slide otomatis menghitung persentase capaian terhadap target tiap brand per bulan, serta kenaikan atau penurunan dibanding bulan sebelumnya
-- Edit langsung di slide: nama sales, nama brand, keterangan periode, catatan
+- Klik elemen mana pun di slide sales (nama, brand, bulan, catatan) untuk langsung menuju kolom yang sesuai di form Isi data
+- Catatan di slide tampil sebagai: Catatan dari <nama sales>: “isi catatan”
+- Perubahan di form tersimpan otomatis ke database; tombol Simpan menyimpan seketika dan menampilkan toast
+- Konfirmasi sebelum menghapus brand, slide, atau mengosongkan data
 - Tambah, hapus, dan urutkan slide sales; tambah atau hapus brand per sales
 - Mode presentasi layar penuh (panah atau spasi untuk pindah slide, Esc untuk keluar)
 - Angka diketik biasa, tampil sebagai Rp dengan titik ribuan
