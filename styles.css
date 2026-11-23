@@ -92,3 +92,8 @@ body { background: #eef3fb; }
 .field:focus { background: #fff; }
 .field:disabled { opacity: .6; cursor: not-allowed; }
 @supports not (backdrop-filter: blur(1px)) { :root { --panel: rgba(255,255,255,.92); } }
+
+.logo-glow { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 72px; height: 56px; }
+.logo-glow::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: radial-gradient(circle, rgba(255,190,40,.45), rgba(255,190,40,0) 68%); }
+.logo-glow img { position: relative; width: 64px; height: auto; filter: drop-shadow(0 3px 5px rgba(180,110,0,.3)); }
+.orb-b { --o1: #ffe08a !important; --o2: #ffb81c !important; --o3: #e08a00 !important; }

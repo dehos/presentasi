@@ -204,14 +204,34 @@ const semOf = (T) => (lum(T.paper) < 0.5
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
 const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
 
-/* Hiasan latar: bola 3D di belakang kartu kaca. Ditandai data-m supaya ikut berpindah saat Morph. */
-function Deco({ T, kind }) {
-  const spots = kind === 'sales' ? [{ x: 1150, y: 250, s: 230 }, { x: -100, y: 440, s: 210 }]
-    : kind === 'cover' ? [{ x: 930, y: 40, s: 380 }, { x: 800, y: 480, s: 190 }]
-    : [{ x: -90, y: 330, s: 330 }, { x: 960, y: 90, s: 230 }];
-  return spots.map((o, i) => (
-    <div key={i} aria-hidden="true" data-m={`orb${i}`} style={{ position: 'absolute', left: o.x, top: o.y, width: o.s, height: o.s, borderRadius: '50%', zIndex: -1, pointerEvents: 'none', opacity: kind === 'sales' ? 0.55 : 0.8,
-      background: `radial-gradient(circle at 30% 26%, rgba(255,255,255,0.85) 0, rgba(255,255,255,0) 24%), radial-gradient(circle at 36% 32%, ${i ? T.accent : T.bars[1]}, ${i ? T.bars[1] : T.accent})`,
+/* Hiasan latar: bola 3D di belakang kartu kaca. Posisi, ukuran, dan warnanya acak per slide
+   (di-seed dari id slide, jadi stabil di editor, presentasi, dan export). Ditandai data-m supaya ikut berpindah saat Morph. */
+const hashStr = (str) => { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; };
+const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
+function orbSpots(T, kind, seed) {
+  const r = rng(hashStr(kind + ':' + seed));
+  const between = (lo, hi) => lo + (hi - lo) * r();
+  const pal = [T.accent, ...(T.bars || [])].filter(Boolean);
+  const pick = () => pal[Math.floor(r() * pal.length)];
+  const spots = [];
+  if (kind === 'sales') {
+    const left = r() < 0.5;
+    [[140, 330, 170, 260], [360, 520, 140, 230]].forEach(([y0, y1, s0, s1], i) => {
+      const sz = between(s0, s1), vis = between(36, 120), onLeft = i === 0 ? left : !left;
+      spots.push({ x: onLeft ? -sz + vis : 1280 - vis, y: between(y0, y1), s: sz });
+    });
+  } else {
+    /* sampul dan penutup: bola di sisi kanan supaya teks di kiri tetap terbaca; tinggi dan ukurannya acak */
+    const cover = kind === 'cover', big = between(300, 440), small = between(130, 230);
+    spots.push({ x: between(900, 1020), y: cover ? between(-90, 160) : between(150, 380), s: big });
+    spots.push({ x: between(780, 1010), y: cover ? between(430, 560) : between(-60, 100), s: small });
+  }
+  return spots.map((o) => { const c1 = pick(); let c2 = pick(); if (c2 === c1 && pal.length > 1) c2 = pal[(pal.indexOf(c1) + 1) % pal.length]; return { ...o, c1, c2, op: between(0.5, 0.78), lx: between(24, 38), ly: between(20, 32) }; });
+}
+function Deco({ T, kind, seed }) {
+  return orbSpots(T, kind, seed).map((o, i) => (
+    <div key={i} aria-hidden="true" data-m={`orb${i}`} style={{ position: 'absolute', left: Math.round(o.x), top: Math.round(o.y), width: Math.round(o.s), height: Math.round(o.s), borderRadius: '50%', zIndex: -1, pointerEvents: 'none', opacity: kind === 'sales' ? Math.min(o.op, 0.6) : o.op,
+      background: `radial-gradient(circle at ${o.lx.toFixed(0)}% ${o.ly.toFixed(0)}%, rgba(255,255,255,0.85) 0, rgba(255,255,255,0) 24%), radial-gradient(circle at ${(o.lx + 6).toFixed(0)}% ${(o.ly + 6).toFixed(0)}%, ${o.c1}, ${o.c2})`,
       boxShadow: `inset -${Math.round(o.s / 14)}px -${Math.round(o.s / 11)}px ${Math.round(o.s / 6)}px rgba(0,0,0,0.2)` }} />
   ));
 }
@@ -308,9 +328,10 @@ function SalesSlide({ sales, deck, n, total, pick }) {
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <Deco T={T} kind="sales" />
+      <Deco T={T} kind="sales" seed={sales.id} />
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, background: T.header, zIndex: -1 }} />
+        <LogoMark h={54} style={{ flex: 'none' }} />
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
@@ -390,7 +411,8 @@ function CoverSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <Deco T={T} kind="cover" />
+      <Deco T={T} kind="cover" seed="cover" />
+      <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
@@ -412,7 +434,8 @@ function ClosingSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
-      <Deco T={T} kind="closing" />
+      <Deco T={T} kind="closing" seed="closing" />
+      <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
@@ -430,6 +453,10 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
 }
 
+
+const LOGO_SRC = 'logo.png', LOGO_RATIO = 639 / 454;
+/* Logo perusahaan: ikut berpindah posisi/ukuran saat Morph (data-m="logo") */
+const LogoMark = ({ h, style }) => <img data-m="logo" src={LOGO_SRC} alt="Logo Dhouse" height={h} width={Math.round(h * LOGO_RATIO)} style={{ height: h, width: Math.round(h * LOGO_RATIO), objectFit: 'contain', display: 'block', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))', ...style }} />;
 
 /* Transisi Morph (seperti PowerPoint): elemen ber-nama sama (data-m) berpindah posisi, ukuran, dan warna dari slide sebelumnya ke slide berikutnya.
    Elemen tanpa pasangan memudar keluar atau masuk. */
@@ -523,7 +550,7 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
         <Fit>
           <div ref={stageRef} style={{ position: 'relative', width: W, height: H }}>
             <div ref={slideRef} key={it.key}><SlideView item={it} deck={deck} n={index + 1} total={total} ro api={api} /></div>
-            <div ref={ovRef} style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }} />
+            <div ref={ovRef} data-morph-overlay="1" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }} />
           </div>
         </Fit>
       </div>
@@ -605,6 +632,9 @@ function Select({ id, value, options, onChange, disabled, placeholder, className
   );
 }
 
+const BRAND_TINTS = ['70,130,240', '30,190,160', '255,170,30', '150,110,240', '240,100,140', '90,190,90', '250,130,60', '40,170,220'];
+const tintOf = (i) => { const c = BRAND_TINTS[i % BRAND_TINTS.length]; return { background: `linear-gradient(145deg, rgba(${c},0.26), rgba(255,255,255,0.55))`, borderColor: `rgba(${c},0.5)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.8), inset 3px 0 0 rgba(${c},0.85)`, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }; };
+
 function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask, perm }) {
   const ro = !perm.edit, adm = perm.admin;
   return (
@@ -643,11 +673,11 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
             </div>
 
             <div className="head font-semibold">{BULAN[parseKey(ck).m]} {parseKey(ck).y}</div>
-            {s.brands.map((b) => {
+            {s.brands.map((b, bi) => {
               const c = cellOf(s, ck, b.id);
               const st = statsOf(s, ck, b.id, keys);
               return (
-                <div key={b.id} className="rounded-md border border-[var(--line)] p-2 flex flex-col gap-2">
+                <div key={b.id} style={tintOf(bi)} className="rounded-lg border p-2 flex flex-col gap-2">
                   <div className="flex gap-2">
                     <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
                     <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={ro || s.brands.length === 1}
@@ -728,7 +758,7 @@ function Menu({ icon, label, children, width }) {
   return (
     <div ref={ref} className="relative">
       <button ref={btn} type="button" aria-haspopup="menu" aria-expanded={open} onClick={toggle} className={TOP_BTN}>
-        {icon}<span>{label}</span><Chevron />
+        {icon}<span>{label}</span><span className="hidden sm:inline-flex"><Chevron /></span>
       </button>
       {open && pos && (
         <div role="menu" onClick={() => setOpen(false)} style={{ position: 'fixed', left: pos.left, top: pos.top, width: pos.w }}
@@ -870,6 +900,44 @@ function ActivityModal({ deck, getToken, onClose }) {
   );
 }
 
+/* Atur urutan sales: tombol naik/turun atau seret. Hanya mengubah urutan data; Morph tidak terpengaruh karena dicocokkan per elemen, bukan per posisi slide. */
+function OrderModal({ deck, onReorder, onClose }) {
+  const [drag, setDrag] = useState(null);
+  const [over, setOver] = useState(null);
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  const n = deck.sales.length;
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Atur urutan sales" className="flex max-h-[90vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+          <div><h2 className="head m-0 text-base font-semibold">Atur urutan sales</h2><p className="m-0 text-xs text-[var(--muted)]">Seret baris atau pakai tombol panah. Urutan ini dipakai di slide dan export.</p></div>
+          <button type="button" className="btn" onClick={onClose} autoFocus>Selesai</button>
+        </div>
+        <ol className="m-0 grid list-none gap-2 overflow-y-auto p-4">
+          {deck.sales.map((x, i) => (
+            <li key={x.id} draggable onDragStart={(e) => { setDrag(i); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', String(i)); } catch (er) {} }}
+              onDragOver={(e) => { e.preventDefault(); setOver(i); }} onDragEnd={() => { setDrag(null); setOver(null); }}
+              onDrop={(e) => { e.preventDefault(); if (drag != null) onReorder(drag, i); setDrag(null); setOver(null); }}
+              className="flex items-center gap-3 rounded-xl border bg-white px-3 py-2"
+              style={{ borderColor: over === i && drag !== i ? 'var(--accent)' : 'var(--line)', opacity: drag === i ? 0.5 : 1, cursor: 'grab' }}>
+              <span aria-hidden="true" className="select-none text-[var(--muted)]">⋮⋮</span>
+              <span className="w-5 text-sm text-[var(--muted)]">{i + 1}</span>
+              <span className="min-w-0 flex-1 truncate font-medium">{x.name || 'Tanpa nama'}</span>
+              <span className="text-xs text-[var(--muted)]">{x.brands.length} brand</span>
+              <button type="button" className="btn px-2 py-1" aria-label={`Naikkan ${x.name}`} disabled={i === 0} onClick={() => onReorder(i, i - 1)}>↑</button>
+              <button type="button" className="btn px-2 py-1" aria-label={`Turunkan ${x.name}`} disabled={i === n - 1} onClick={() => onReorder(i, i + 1)}>↓</button>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 function Toast({ toast }) {
   if (!toast) return null;
   return (
@@ -880,6 +948,84 @@ function Toast({ toast }) {
           </div>
         </div>
   );
+}
+
+/* ===== Export PPTX =====
+   Tiap slide dirender dari komponen yang sama dengan tampilan web (SlideView), difoto resolusi 2x, lalu disusun menjadi file .pptx
+   sehingga hasilnya sama persis dengan di layar (font, warna, bola 3D, kartu kaca). Slide berupa gambar, jadi teksnya tidak bisa diedit di PowerPoint;
+   isi tiap slide disertakan sebagai catatan pembicara dan teks alternatif gambar. */
+const LIB_IMG = 'https://unpkg.com/html-to-image@1.11.13/dist/html-to-image.js';
+const LIB_PPTX = 'https://unpkg.com/pptxgenjs@4.0.1/dist/pptxgen.bundle.js';
+const libCache = {};
+const loadLib = (src) => (libCache[src] = libCache[src] || new Promise((res, rej) => {
+  const el = document.createElement('script');
+  el.src = src; el.async = true; el.onload = res;
+  el.onerror = () => { delete libCache[src]; rej(new Error('Pustaka export gagal dimuat. Periksa koneksi internet.')); };
+  document.head.appendChild(el);
+}));
+let fontCssCache = null;
+async function buildFontCss() {
+  if (fontCssCache !== null) return fontCssCache;
+  try {
+    const link = document.querySelector('link[href*="fonts.googleapis.com"]');
+    if (!link) return '';
+    const css = await (await fetch(link.href)).text();
+    const blocks = css.split('@font-face').slice(1).map((b) => '@font-face' + b).filter((b) => /U\+0000-00FF/.test(b));
+    let out = '';
+    for (const b of blocks) {
+      const m = b.match(/url\((https:[^)]+)\)/); if (!m) continue;
+      const blob = await (await fetch(m[1])).blob();
+      const data = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+      out += b.replace(m[1], data) + '\n';
+    }
+    return (fontCssCache = out);
+  } catch (e) { return ''; }
+}
+async function renderSlidePng(item, deck, n, total, api, fontCss) {
+  const host = document.createElement('div');
+  host.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;height:${H}px;pointer-events:none`;
+  document.body.appendChild(host);
+  const root = ReactDOM.createRoot(host);
+  try {
+    ReactDOM.flushSync(() => root.render(<SlideView item={item} deck={deck} n={n} total={total} ro api={api} />));
+    try { await document.fonts.ready; } catch (e) {}
+    await Promise.all(Array.from(host.querySelectorAll('img')).map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; }))));
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return await window.htmlToImage.toPng(host.firstElementChild, { width: W, height: H, pixelRatio: 2, ...(fontCss ? { fontEmbedCSS: fontCss } : {}) });
+  } finally { root.unmount(); host.remove(); }
+}
+function slideNotes(it, deck) {
+  if (it.kind === 'cover') return [deck.cover.title, deck.cover.sub, periodOf(deck), deck.cover.audience].filter(Boolean).join('\n');
+  if (it.kind === 'closing') return [deck.closing.title, deck.closing.sub].filter(Boolean).join('\n');
+  const s = it.sales, keys = monthsOf(deck), out = [`${s.name} · ${sublineOf(deck)}`];
+  s.brands.forEach((b) => {
+    out.push(`${b.name}:`);
+    keys.forEach((k) => {
+      const c = cellOf(s, k, b.id), st = statsOf(s, k, b.id, keys);
+      out.push(`  ${BULAN[parseKey(k).m]} ${parseKey(k).y}: total ${rp(c.total) || '-'}, target ${rp(c.target) || '-'}${st.pct == null ? '' : ', capaian ' + Math.round(st.pct) + '%'}`);
+    });
+  });
+  if (s.note) out.push(`Catatan dari ${s.name}: “${s.note}”`);
+  return out.join('\n');
+}
+const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
+async function exportPptx(items, deck, api, onProgress) {
+  await Promise.all([loadLib(LIB_IMG), loadLib(LIB_PPTX)]);
+  onProgress(0, items.length);
+  const fontCss = await buildFontCss();
+  const pptx = new window.PptxGenJS();
+  pptx.defineLayout({ name: 'DHOUSE', width: 13.333, height: 7.5 });
+  pptx.layout = 'DHOUSE'; pptx.title = 'Presentasi Dhouse'; pptx.company = 'Dhouse';
+  for (let i = 0; i < items.length; i++) {
+    onProgress(i, items.length);
+    const png = await renderSlidePng(items[i], deck, i + 1, items.length, api, fontCss);
+    const sl = pptx.addSlide();
+    sl.addImage({ data: png, x: 0, y: 0, w: 13.333, h: 7.5, altText: `${labelOfItem(items[i])} (slide ${i + 1} dari ${items.length})` });
+    sl.addNotes(slideNotes(items[i], deck));
+  }
+  onProgress(items.length, items.length);
+  const stamp = new Date().toISOString().slice(0, 10);
+  await pptx.writeFile({ fileName: `Presentasi-Dhouse-${stamp}.pptx` });
 }
 
 function Editor({ session, getToken, initialDeck, onLogout, notify }) {
@@ -894,12 +1040,23 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     if (!mine || !nm) return d;
     return { ...d, sales: d.sales.map((x) => (x.id === mine.id ? { ...nm, id: mine.id, name: mine.name } : x)) };
   });
-  const [idx, setIdx] = useState(1);
+  const [idx, setIdx] = useState(() => { if (isAdmin) return 1; const i = deck.sales.findIndex((x) => sameName(x.name, session.name)); return i >= 0 ? i + 1 : 1; });
   const [presenting, setPresenting] = useState(false);
 
   const [sync, setSync] = useState(isAdmin ? 'memuat' : 'tersimpan');
   const [dlg, setDlg] = useState(null);
   const [showAct, setShowAct] = useState(false);
+  const [showOrder, setShowOrder] = useState(false);
+  const [exporting, setExporting] = useState(null);
+  const doExport = async () => {
+    if (exporting) return;
+    setExporting({ i: 0, n: items.length });
+    try {
+      await exportPptx(items, deck, api, (i, n) => setExporting({ i, n }));
+      notify('File PPTX berhasil dibuat');
+    } catch (e) { notify('Export gagal: ' + (e && e.message ? e.message : 'coba lagi'), 'err'); }
+    setExporting(null);
+  };
   const [mk, setMk] = useState(null);
   const [focusReq, setFocusReq] = useState(null);
   const [moreRail, setMoreRail] = useState(false);
@@ -1032,6 +1189,12 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     }) };
   });
   const clearNums = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, data: {} })) }));
+  const reorderSales = (a, b) => {
+    if (a === b || a < 0 || b < 0 || a >= deck.sales.length || b >= deck.sales.length) return;
+    const arr = [...deck.sales]; const [m] = arr.splice(a, 1); arr.splice(b, 0, m);
+    if (cur.kind === 'sales') { const ni = arr.findIndex((x) => x.id === cur.sales.id); if (ni >= 0) setIdx(ni + 1); }
+    setDeck((d) => ({ ...d, sales: arr }));
+  };
   const resetAll = () => { setDeck(DEFAULT); setIdx(1); };
 
   useEffect(() => {
@@ -1096,15 +1259,17 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     if (!isAdmin) await salesLog(session.name, session.pass, 'keluar');
     onLogout('', 'Berhasil keluar');
   };
+  const isMine = (it) => it.kind === 'sales' && sameName(it.sales.name, session.name);
   const labelOf = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
 
   return (
     <div className="flex flex-col gap-3 min-h-full lg:h-full">
       <header className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-3">
-          <h1 className="head m-0 text-lg font-bold">Laporan Penjualan</h1>
+          <img src={LOGO_SRC} alt="" width="38" height="27" className="h-[27px] w-[38px] shrink-0 object-contain" />
+          <h1 className="head m-0 whitespace-nowrap text-lg font-bold">Presentasi Dhouse</h1>
           <span role="status" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
-            <span className={'h-1.5 w-1.5 rounded-full ' + syncDot} />{syncText}
+            <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + syncDot} /><span className="whitespace-nowrap"><span className="sr-only sm:not-sr-only">{syncText}</span><span aria-hidden="true" className="sm:hidden">{syncText.replace(' di database', '')}</span></span>
           </span>
           <span className="hidden max-w-[16rem] items-center truncate rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] md:inline-flex">
             {isAdmin ? 'Admin · ' + session.email : 'Sales · ' + session.name}
@@ -1117,6 +1282,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
             ))}
           </Menu>}
           {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
+            <MenuItem title="Atur urutan sales" hint="Ubah urutan slide sales dengan seret atau panah" onClick={() => setShowOrder(true)} />
             <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
             <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
               onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
@@ -1125,6 +1291,9 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
             <MenuItem danger title="Setel ulang" hint="Kembali ke data awal"
               onClick={() => ask({ title: 'Setel ulang semua data?', body: 'Semua sales, brand, angka, dan catatan kembali ke data awal.', confirm: 'Setel ulang', onConfirm: resetAll })} />
           </Menu>}
+          <button type="button" className={TOP_BTN} onClick={doExport} disabled={!!exporting} title="Unduh semua slide sebagai file PowerPoint (.pptx)">
+            <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg><span className="sr-only sm:not-sr-only">Export PPTX</span>
+          </button>
           <button type="button" onClick={() => setPresenting(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
             <PlayIcon /><span className="sm:hidden">Presentasi</span><span className="hidden sm:inline">Mulai presentasi</span>
@@ -1140,12 +1309,13 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           <nav ref={railRef} onScroll={updRail} aria-label="Daftar slide" className="flex gap-2 overflow-x-auto pb-2 lg:absolute lg:inset-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pb-0">
             {items.map((it, i) => (
               <button key={it.key} onClick={() => setIdx(i)} aria-current={i === safeIdx}
-                className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]')}>
+                className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]') + (!isAdmin && !isMine(it) ? ' opacity-60 hover:opacity-100' : '')}>
                 <div className="aspect-video rounded-sm overflow-hidden border border-[var(--line)] pointer-events-none"><Fit><SlideView item={it} deck={deck} n={i + 1} total={items.length} ro api={api} /></Fit></div>
-                <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}</div>
+                <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}{!isAdmin && isMine(it) && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">Saya</span>}</div>
               </button>
             ))}
             {isAdmin && <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>}
+            {!isAdmin && <button className="btn shrink-0 w-28 lg:w-full" onClick={() => { const i = items.findIndex(isMine); if (i >= 0) setIdx(i); }}>Slide saya</button>}
           </nav>
           {moreRail && (
             <>
@@ -1172,6 +1342,16 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
 
       {presenting && <Present items={items} deck={deck} index={safeIdx} setIndex={setIdx} onExit={() => setPresenting(false)} api={api} />}
       {dlg && <ConfirmDialog dlg={dlg} onClose={() => setDlg(null)} />}
+      {exporting && (
+        <div role="alertdialog" aria-modal="true" aria-label="Menyiapkan PPTX" className="fixed inset-0 z-[75] flex items-center justify-center bg-slate-900/40 p-4">
+          <div className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl ring-1 ring-black/5">
+            <div className="head text-base font-semibold">Menyiapkan PPTX…</div>
+            <p className="mb-3 mt-1 text-sm text-[var(--muted)]">{exporting.i >= exporting.n ? 'Menyusun file…' : `Slide ${exporting.i + 1} dari ${exporting.n}`}</p>
+            <div className="h-2 overflow-hidden rounded-full bg-[var(--soft)]"><div className="h-full rounded-full bg-[var(--accent)] transition-all" style={{ width: Math.round((exporting.i / Math.max(1, exporting.n)) * 100) + '%' }} /></div>
+          </div>
+        </div>
+      )}
+      {showOrder && <OrderModal deck={deck} onReorder={reorderSales} onClose={() => setShowOrder(false)} />}
       {showAct && <ActivityModal deck={deck} getToken={getToken} onClose={() => setShowAct(false)} />}
     </div>
   );
@@ -1224,8 +1404,8 @@ function LoginScreen({ onLogin, notice, notify }) {
     <div className="flex min-h-[85vh] items-center justify-center py-6">
       <form onSubmit={submit} className="glass-card w-full max-w-sm p-6 flex flex-col gap-4">
         <div className="flex items-center gap-3">
-          <span className="logo-orb" aria-hidden="true" />
-          <div><h1 className="head m-0 text-xl font-bold leading-tight">Laporan Penjualan</h1><p className="m-0 text-xs text-[var(--muted)]">Masuk untuk melihat dan mengisi laporan</p></div>
+          <span className="logo-glow" aria-hidden="true"><img src={LOGO_SRC} alt="" width="64" height="45" /></span>
+          <div><h1 className="head m-0 text-xl font-bold leading-tight">Presentasi Dhouse</h1><p className="m-0 text-xs text-[var(--muted)]">Masuk untuk melihat dan mengisi laporan</p></div>
         </div>
         <div role="tablist" aria-label="Jenis akun" className="seg flex gap-1 p-1">{tabBtn('sales', 'Sales')}{tabBtn('admin', 'Admin')}</div>
         {tab === 'sales' ? (
@@ -1248,6 +1428,7 @@ function LoginScreen({ onLogin, notice, notify }) {
 }
 
 function App() {
+  useEffect(() => { document.title = 'Presentasi Dhouse'; }, []);
   const [sess, setSess] = useState(null);
   const [initialDeck, setInitialDeck] = useState(null);
   const [boot, setBoot] = useState(true);

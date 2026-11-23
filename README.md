@@ -1,4 +1,4 @@
-# presentasi
+# Presentasi Dhouse
 
 Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, produk, angka, dan target yang bisa diedit langsung. Dibuat dengan React dan Tailwind CSS, tanpa langkah build.
 
@@ -20,6 +20,17 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Pemilih tema slide (Langit bawaan, Lautan, Malam, Pasir, dan lainnya)
 - Slide otomatis beralih ke tampilan padat bila brand banyak (5 ke atas); sampai sekitar 24 brand tetap terbaca. Di tampilan paling padat, tiap bulan hanya menampilkan persen capaian dan naik/turun
 - Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`); admin memakai cadangan di browser (localStorage)
+
+## Export PPTX
+
+Tombol **Export PPTX** di header membuat file `.pptx` berisi semua slide (sampul, tiap sales, penutup). Tiap slide dirender dari komponen yang sama dengan tampilan web lalu difoto resolusi 2x (2560×1440), jadi hasilnya sama persis dengan di layar: font, warna, bola 3D, dan kartu kaca. Slide berupa gambar (teks tidak bisa diedit di PowerPoint); isi tiap slide disertakan di catatan pembicara dan teks alternatif. Pustaka export (`html-to-image`, `pptxgenjs`) dimuat dari CDN hanya saat tombol ditekan.
+
+## Logo, urutan, dan fokus sales
+
+- Logo perusahaan (`logo.png`) tampil di login, header web, sampul, penutup, dan header tiap slide sales; ikut berpindah posisi saat transisi Morph.
+- Bola 3D di latar slide acak per slide (di-seed dari id slide, jadi tetap sama di editor, presentasi, dan export).
+- Admin: menu Data → **Atur urutan sales** (seret baris atau tombol panah).
+- Sales: saat masuk langsung membuka slide miliknya (ditandai "Saya"), presentasi dimulai dari slide itu, dan tombol "Slide saya" kembali ke sana.
 
 ## Login dan hak akses
 
