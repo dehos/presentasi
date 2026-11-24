@@ -894,10 +894,10 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                       <span className="w-40 shrink-0 text-right">{pct != null ? `Capaian ${pct}% dari target` : 'Isi total dan target'}</span>
                     </div>
                     {!ro && (
-                      <div className="flex items-center justify-between gap-2 border-t border-black/10 pt-2">
-                        <button type="button" className="rounded-md px-2 py-1 text-xs font-medium text-[var(--fg)] hover:bg-black/5 disabled:opacity-40" disabled={!c.total && !c.target}
+                      <div className="flex items-center gap-2 border-t border-black/10 pt-3">
+                        <button type="button" className="btn flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={!c.total && !c.target}
                           onClick={() => ask({ title: `Kosongkan angka ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dikosongkan. Bulan lain dan brand tetap.`, confirm: `Kosongkan ${mName}`, onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Kosongkan {BULAN_PENDEK[parseKey(ck).m]}</button>
-                        <button type="button" className="rounded-md px-2 py-1 text-xs font-medium text-[var(--danger)] hover:bg-red-50 disabled:opacity-40" disabled={s.brands.length === 1}
+                        <button type="button" className="btn btn-danger flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={s.brands.length === 1}
                           onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
                       </div>
                     )}
