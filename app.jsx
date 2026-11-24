@@ -951,11 +951,12 @@ function Toast({ toast }) {
 }
 
 /* ===== Export PPTX =====
-   Tiap slide dirender dari komponen yang sama dengan tampilan web (SlideView), difoto resolusi 2x, lalu disusun menjadi file .pptx
-   sehingga hasilnya sama persis dengan di layar (font, warna, bola 3D, kartu kaca). Slide berupa gambar, jadi teksnya tidak bisa diedit di PowerPoint;
-   isi tiap slide disertakan sebagai catatan pembicara dan teks alternatif gambar. */
-const LIB_IMG = 'https://unpkg.com/html-to-image@1.11.13/dist/html-to-image.js';
+   Tiap slide dirender dari komponen yang sama dengan tampilan web (SlideView), lalu posisi dan gaya setiap elemen dibaca dari browser
+   dan dibuat ulang sebagai objek asli PowerPoint (teks, bentuk, bar, logo) di pptx-export.js. Semua bisa diedit.
+   Objek diberi nama konsisten antar slide (!!title, !!card-0, ...) agar transisi Morph PowerPoint bisa diterapkan manual. */
 const LIB_PPTX = 'https://unpkg.com/pptxgenjs@4.0.1/dist/pptxgen.bundle.js';
+const LIB_ZIP = 'https://unpkg.com/jszip@3.10.1/dist/jszip.min.js';
+const LIB_CONV = 'pptx-export.js';
 const libCache = {};
 const loadLib = (src) => (libCache[src] = libCache[src] || new Promise((res, rej) => {
   const el = document.createElement('script');
@@ -963,25 +964,7 @@ const loadLib = (src) => (libCache[src] = libCache[src] || new Promise((res, rej
   el.onerror = () => { delete libCache[src]; rej(new Error('Pustaka export gagal dimuat. Periksa koneksi internet.')); };
   document.head.appendChild(el);
 }));
-let fontCssCache = null;
-async function buildFontCss() {
-  if (fontCssCache !== null) return fontCssCache;
-  try {
-    const link = document.querySelector('link[href*="fonts.googleapis.com"]');
-    if (!link) return '';
-    const css = await (await fetch(link.href)).text();
-    const blocks = css.split('@font-face').slice(1).map((b) => '@font-face' + b).filter((b) => /U\+0000-00FF/.test(b));
-    let out = '';
-    for (const b of blocks) {
-      const m = b.match(/url\((https:[^)]+)\)/); if (!m) continue;
-      const blob = await (await fetch(m[1])).blob();
-      const data = await new Promise((r) => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
-      out += b.replace(m[1], data) + '\n';
-    }
-    return (fontCssCache = out);
-  } catch (e) { return ''; }
-}
-async function renderSlidePng(item, deck, n, total, api, fontCss) {
+async function convertSlide(item, deck, n, total, api, slide, pptx, ctx) {
   const host = document.createElement('div');
   host.style.cssText = `position:fixed;left:-20000px;top:0;width:${W}px;height:${H}px;pointer-events:none`;
   document.body.appendChild(host);
@@ -991,7 +974,7 @@ async function renderSlidePng(item, deck, n, total, api, fontCss) {
     try { await document.fonts.ready; } catch (e) {}
     await Promise.all(Array.from(host.querySelectorAll('img')).map((im) => (im.complete ? 0 : new Promise((r) => { im.onload = im.onerror = r; }))));
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
-    return await window.htmlToImage.toPng(host.firstElementChild, { width: W, height: H, pixelRatio: 2, ...(fontCss ? { fontEmbedCSS: fontCss } : {}) });
+    await window.DhouseExport.convert(host.firstElementChild, slide, pptx, ctx);
   } finally { root.unmount(); host.remove(); }
 }
 function slideNotes(it, deck) {
@@ -1010,22 +993,26 @@ function slideNotes(it, deck) {
 }
 const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
 async function exportPptx(items, deck, api, onProgress) {
-  await Promise.all([loadLib(LIB_IMG), loadLib(LIB_PPTX)]);
+  await Promise.all([loadLib(LIB_PPTX), loadLib(LIB_ZIP), loadLib(LIB_CONV)]);
   onProgress(0, items.length);
-  const fontCss = await buildFontCss();
   const pptx = new window.PptxGenJS();
   pptx.defineLayout({ name: 'DHOUSE', width: 13.333, height: 7.5 });
   pptx.layout = 'DHOUSE'; pptx.title = 'Presentasi Dhouse'; pptx.company = 'Dhouse';
+  const ctx = { orbs: [], slideIndex: 0 };
   for (let i = 0; i < items.length; i++) {
     onProgress(i, items.length);
-    const png = await renderSlidePng(items[i], deck, i + 1, items.length, api, fontCss);
+    ctx.slideIndex = i;
     const sl = pptx.addSlide();
-    sl.addImage({ data: png, x: 0, y: 0, w: 13.333, h: 7.5, altText: `${labelOfItem(items[i])} (slide ${i + 1} dari ${items.length})` });
+    await convertSlide(items[i], deck, i + 1, items.length, api, sl, pptx, ctx);
     sl.addNotes(slideNotes(items[i], deck));
   }
   onProgress(items.length, items.length);
-  const stamp = new Date().toISOString().slice(0, 10);
-  await pptx.writeFile({ fileName: `Presentasi-Dhouse-${stamp}.pptx` });
+  const buf = await window.DhouseExport.patchOrbs(await pptx.write({ outputType: 'arraybuffer' }), ctx.orbs, window.JSZip);
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `Presentasi-Dhouse-${new Date().toISOString().slice(0, 10)}.pptx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 
 function Editor({ session, getToken, initialDeck, onLogout, notify }) {

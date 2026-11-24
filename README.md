@@ -23,7 +23,9 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 
 ## Export PPTX
 
-Tombol **Export PPTX** di header membuat file `.pptx` berisi semua slide (sampul, tiap sales, penutup). Tiap slide dirender dari komponen yang sama dengan tampilan web lalu difoto resolusi 2x (2560×1440), jadi hasilnya sama persis dengan di layar: font, warna, bola 3D, dan kartu kaca. Slide berupa gambar (teks tidak bisa diedit di PowerPoint); isi tiap slide disertakan di catatan pembicara dan teks alternatif. Pustaka export (`html-to-image`, `pptxgenjs`) dimuat dari CDN hanya saat tombol ditekan.
+Tombol **Export PPTX** di header membuat file `.pptx` berisi semua slide (sampul, tiap sales, penutup) sebagai **objek asli PowerPoint**: teks, kotak kartu, bar grafik, garis target, label persen, bola 3D (bentuk bergradasi) dan logo, semuanya bisa diedit. Posisi dan gaya dibaca dari hasil render web (`pptx-export.js`), jadi tampilannya mengikuti web. Font Inter dan Space Grotesk perlu terpasang di komputer agar tampilan identik.
+
+Setiap objek bernama sama antar slide dengan awalan `!!` (`!!title`, `!!sub`, `!!logo`, `!!card-0`, `!!card-0.3`, `!!orb0`, ...). Transisi **Morph** tidak dipasang otomatis: di PowerPoint pilih semua slide → tab Transitions → Morph; objek ber-awalan `!!` yang sama akan berpindah/berubah mulus. Isi tiap slide juga ada di catatan pembicara. Pustaka (`pptxgenjs`, `jszip`) dimuat dari CDN hanya saat tombol ditekan.
 
 ## Logo, urutan, dan fokus sales
 
