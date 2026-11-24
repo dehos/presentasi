@@ -241,6 +241,19 @@ function Pct({ v, sem, muted, small }) {
   const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
   return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: small ? '1px 5px' : '2px 10px', fontWeight: 600, fontSize: small ? '0.86em' : undefined }}>{Math.round(v)}%</span>;
 }
+/* Capaian target: angka persen dengan bar progres tipis di bawahnya (penuh = 100% target; warna mengikuti ambang 80/100) */
+function PctBar({ v, sem, muted, small }) {
+  if (v == null) return <span style={{ color: muted }}>–</span>;
+  const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
+  return (
+    <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: small ? 2 : 3 }}>
+      <span style={{ color: c, fontWeight: 700, fontSize: small ? '0.9em' : undefined, lineHeight: 1.1, textAlign: 'right' }}>{Math.round(v)}%</span>
+      <span style={{ display: 'block', height: small ? 4 : 5, borderRadius: 3, background: c + '2E', overflow: 'hidden' }}>
+        <span style={{ display: 'block', height: '100%', width: Math.max(4, Math.min(100, v)) + '%', background: c, borderRadius: 3 }} />
+      </span>
+    </span>
+  );
+}
 function Trend({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
   const up = v > 0.05, down = v < -0.05;
@@ -302,7 +315,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
                 style={{ display: 'flex', alignItems: 'center', gap: 5, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                 <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
-                <span style={{ width: 44, flex: 'none', textAlign: 'right' }}><Pct small v={st[i].pct} sem={sem} muted={T.muted} /></span>
+                <span style={{ width: 44, flex: 'none', textAlign: 'right' }}>{rowH >= 26 ? <PctBar small v={st[i].pct} sem={sem} muted={T.muted} /> : <Pct small v={st[i].pct} sem={sem} muted={T.muted} />}</span>
                 <span style={{ width: 46, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend small v={st[i].trend} sem={sem} muted={T.muted} />}</span>
               </Hit>
             ))}
@@ -374,7 +387,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
                       style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                       <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                       <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : compact ? fmtCompact(st[i].total) : rp(st[i].total)}</span>
-                      <span style={{ width: compact ? 54 : 64, flex: 'none', textAlign: 'right' }}><Pct v={st[i].pct} sem={sem} muted={T.muted} /></span>
+                      <span style={{ width: compact ? 58 : 70, flex: 'none', textAlign: 'right' }}><PctBar v={st[i].pct} sem={sem} muted={T.muted} /></span>
                       <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
                     </Hit>
                   ))}
@@ -1155,7 +1168,9 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
       let a = idxOf(d.range.from), b = idxOf(d.range.to), k = idxOf(key);
       if (which === 'from') { a = k; if (b < a) b = a; if (b - a >= MAX_BULAN) b = a + MAX_BULAN - 1; }
       else { b = k; if (b < a) a = b; if (b - a >= MAX_BULAN) a = b - MAX_BULAN + 1; }
-      return { ...d, range: { from: keyOfIdx(a), to: keyOfIdx(b) } };
+      /* teks periode (keterangan slide sales dan periode sampul) ikut rentang baru, bukan teks lama */
+      const { subline, ...rest } = d, { period, ...cover } = rest.cover;
+      return { ...rest, cover, range: { from: keyOfIdx(a), to: keyOfIdx(b) } };
     }),
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
