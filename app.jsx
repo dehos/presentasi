@@ -6,12 +6,13 @@ const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
 /* 4 model slide: bukan hanya beda warna, bentuk header, kartu, bar, hiasan latar, dan penanda sampul juga berbeda */
 const SLIDE_THEMES = {
   langit: { name: 'Langit', paper: '#e8f1f8', ink: '#13243a', muted: '#5d7288', grid: '#cfdeeb', axis: '#a9bfd3', header: '#dbe7f1', headerFg: '#13243a', headerSub: '#5d7288', cover: '#e8f1f8', coverFg: '#13243a', coverSub: '#2f6fed', coverMuted: '#5d7288', accent: '#2f6fed', bars: ['#a9c4f7', '#2f6fed', '#a9c4f7'], target: '#e08a1e', targetText: '#b3690d', card: '#ffffff', deco: 'orbs', hdrLine: 'none', cardR: 16, cardBorder: null, cardTop: null, barR: '5px 5px 0 0', coverBar: [96, 8, 0] },
+  morph: { name: 'Morph', font: "'Montserrat', 'Inter', system-ui, sans-serif", headFont: "'Montserrat', 'Inter', system-ui, sans-serif", paper: '#8b6cf0', bgImage: 'linear-gradient(135deg, #6ec6ee 0%, #9b8cf3 36%, #b45cf0 66%, #4a5fd0 100%)', ink: '#ffffff', muted: 'rgba(255,255,255,0.8)', grid: 'rgba(255,255,255,0.3)', axis: 'rgba(255,255,255,0.5)', header: 'transparent', headerFg: '#ffffff', headerSub: 'rgba(255,255,255,0.88)', cover: '#8b6cf0', coverFg: '#ffffff', coverSub: '#ffffff', coverMuted: 'rgba(255,255,255,0.82)', accent: '#ffffff', bars: ['#e9c9ff', '#ffffff', '#e9c9ff'], barFill: 'linear-gradient(180deg, #ffe3ff 0%, #c9a6ff 100%)', sem: { good: '#8dffcf', warn: '#ffe66d', bad: '#ffb3c0' }, orbs: ['#e2b8ff', '#a27cff', '#7fd3f7', '#c06bf5'], target: '#ffe66d', targetText: '#ffe66d', card: 'rgba(255,255,255,0.16)', deco: 'orbs', hdrLine: 'none', cardR: 24, cardBorder: '1.5px solid rgba(255,255,255,0.6)', cardTop: null, barR: '8px 8px 0 0', coverBar: [120, 6, 6] },
   korporat: { name: 'Korporat', paper: '#f4f6fa', ink: '#14213a', muted: '#5a6785', grid: '#dde2ec', axis: '#aeb7c8', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#e0861c', targetText: '#b3690d', card: '#ffffff', deco: 'squares', hdrLine: '6px solid #1D9E75', cardR: 4, cardBorder: null, cardTop: '5px solid #1D9E75', barR: '0', coverBar: [14, 72, 0] },
   malam: { name: 'Malam neon', paper: '#17152e', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: 'transparent', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#17152e', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffb84d', targetText: '#ffb84d', card: 'rgba(255,255,255,0.06)', deco: 'rings', hdrLine: '3px solid #a995ff', cardR: 28, cardBorder: '1px solid #4a4580', cardTop: null, barR: '12px 12px 0 0', coverBar: [96, 4, 4] },
   pasir: { name: 'Editorial', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#d9c9b3', axis: '#b9a68d', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3', deco: 'flat', hdrLine: '3px solid #2b2a28', cardR: 0, cardBorder: '2px solid #2b2a28', cardTop: null, barR: '0', coverBar: [140, 6, 0] },
 };
 /* nama tema lama dipetakan ke 4 model baru */
-const THEME_ALIAS = { navy: 'langit', terang: 'langit', lautan: 'malam', remotion: 'malam', ungu: 'malam', navyteal: 'korporat', senja: 'pasir' };
+const THEME_ALIAS = {  navy: 'langit', terang: 'langit', lautan: 'malam', remotion: 'malam', ungu: 'malam', navyteal: 'korporat', senja: 'pasir' };
 const themeOf = (deck) => SLIDE_THEMES[THEME_ALIAS[deck.slideTheme] || deck.slideTheme] || SLIDE_THEMES.langit;
 
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -147,6 +148,37 @@ const salesNames = () => rpc('lp_sales_names');
 const salesLogin = (name, pass) => rpc('lp_sales_login', { p_name: name, p_pass: pass });
 const salesSave = (name, pass, slide) => rpc('lp_sales_save', { p_name: name, p_pass: pass, p_sales: slide });
 const salesLog = (name, pass, action) => rpc('lp_sales_log', { p_name: name, p_pass: pass, p_action: action }).catch(() => false);
+/* Canvasing: admin lewat tabel (JWT), sales lewat fungsi database yang memeriksa password */
+const CANVAS_URL = SB_BASE + '/rest/v1/lp_canvas';
+async function canvasList(session, tok) {
+  if (session.role === 'admin') {
+    const r = await fetch(CANVAS_URL + '?select=*&order=created_at.asc', { headers: sbHead(tok) });
+    if (!r.ok) throw new Error('cv ' + r.status);
+    return r.json();
+  }
+  return rpc('lp_canvas_list', { p_name: session.name, p_pass: session.pass });
+}
+async function canvasSave(session, tok, f, who) {
+  const row = { kontraktor: f.kontraktor, produk: f.produk, catatan: f.catatan, foto: f.foto || null };
+  if (session.role === 'admin') {
+    const r = f.id
+      ? await fetch(CANVAS_URL + '?id=eq.' + encodeURIComponent(f.id), { method: 'PATCH', headers: { ...sbHead(tok), Prefer: 'return=minimal' }, body: JSON.stringify({ ...row, updated_at: new Date().toISOString() }) })
+      : await fetch(CANVAS_URL, { method: 'POST', headers: { ...sbHead(tok), Prefer: 'return=minimal' }, body: JSON.stringify({ ...row, sales: who }) });
+    if (!r.ok) throw new Error('cv ' + r.status);
+    return true;
+  }
+  const r = await rpc('lp_canvas_save', { p_name: session.name, p_pass: session.pass, p_id: f.id || null, p_kontraktor: row.kontraktor, p_produk: row.produk, p_catatan: row.catatan, p_foto: row.foto });
+  if (!r) throw new Error('cv');
+  return true;
+}
+async function canvasDelete(session, tok, id) {
+  if (session.role === 'admin') {
+    const r = await fetch(CANVAS_URL + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: { ...sbHead(tok), Prefer: 'return=minimal' } });
+    if (!r.ok) throw new Error('cv ' + r.status);
+    return true;
+  }
+  return rpc('lp_canvas_delete', { p_name: session.name, p_pass: session.pass, p_id: id });
+}
 async function loadActivity(tok) {
   const r = await fetch(SB_BASE + '/rest/v1/lp_activity?select=*&order=last_at.desc&limit=200', { headers: sbHead(tok) });
   if (!r.ok) throw new Error('act ' + r.status);
@@ -208,7 +240,7 @@ function Ed({ value, onChange, ro, money, style, placeholder, label }) {
 const headFont = "'Space Grotesk', system-ui, sans-serif";
 
 const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
-const semOf = (T) => (lum(T.paper) < 0.5
+const semOf = (T) => (T.sem ? { ...T.sem, card: T.card } : lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
 const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
@@ -220,7 +252,7 @@ const rng = (seed) => { let a = seed >>> 0; return () => { a = (a + 0x6D2B79F5) 
 function orbSpots(T, kind, seed) {
   const r = rng(hashStr(kind + ':' + seed));
   const between = (lo, hi) => lo + (hi - lo) * r();
-  const pal = [T.accent, ...(T.bars || [])].filter(Boolean);
+  const pal = (T.orbs || [T.accent, ...(T.bars || [])]).filter(Boolean);
   const pick = () => pal[Math.floor(r() * pal.length)];
   const spots = [];
   if (kind === 'sales') {
@@ -291,24 +323,26 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   const layout = (cols) => {
     const rowsN = Math.ceil(nb / cols);
     const cardH = Math.floor((availH - gap * (rowsN - 1)) / rowsN);
-    return { cols, rowsN, cardH, raw: Math.floor((cardH - 20 - 26 - 4) / keys.length) };
+    return { cols, rowsN, cardH, raw: Math.floor((cardH - (cols <= 3 ? 70 : 54) - 4) / keys.length) };
   };
-  let L = layout(nb <= 8 ? 4 : 5);
+  let L = layout(nb <= 6 ? 3 : nb <= 8 ? 4 : 5);
   const ultra = L.raw < 15;
   if (ultra && nb > 20) L = layout(6);
   const { cols, rowsN, cardH } = L;
-  const rowH = Math.max(15, Math.min(34, L.raw));
-  const fs = Math.max(12, Math.min(17, Math.floor(rowH * 0.62)));
-  const nameFs = ultra ? 16 : rowsN >= 3 ? 19 : 22;
-  const nameH = ultra ? 22 : 26;
+  const roomy = cols <= 3;
+  const rowH = Math.max(15, Math.min(roomy ? 46 : 34, L.raw));
+  const fs = Math.max(12, Math.min(roomy ? 20 : 17, Math.floor(rowH * 0.62)));
+  const nameFs = ultra ? 16 : roomy ? 26 : rowsN >= 3 ? 19 : 22;
+  const nameH = ultra ? 22 : roomy ? 34 : 26;
+  const pctW = roomy ? 66 : 44, trW = roomy ? 70 : 46;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: cardH, gap }}>
       {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : roomy ? '16px 22px' : '12px 14px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
-              style={{ fontFamily: headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
+              style={{ fontFamily: T.headFont || headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
             </Hit>
             {ultra ? (
@@ -328,11 +362,11 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
               </div>
             ) : keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
               <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
-                <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
+                style={{ display: 'flex', alignItems: 'center', gap: roomy ? 10 : 6, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
+                <span style={{ width: roomy ? labW + 8 : labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
-                <span style={{ width: 44, flex: 'none', textAlign: 'right' }}>{rowH >= 26 ? <PctBar small v={st[i].pct} sem={sem} muted={T.muted} /> : <Pct small v={st[i].pct} sem={sem} muted={T.muted} />}</span>
-                <span style={{ width: 46, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend small v={st[i].trend} sem={sem} muted={T.muted} />}</span>
+                <span style={{ width: pctW, flex: 'none', textAlign: 'right' }}>{rowH >= 26 ? <PctBar small v={st[i].pct} sem={sem} muted={T.muted} /> : <Pct small v={st[i].pct} sem={sem} muted={T.muted} />}</span>
+                <span style={{ width: trW, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend small v={st[i].trend} sem={sem} muted={T.muted} />}</span>
               </Hit>
             ))}
           </div>
@@ -356,12 +390,12 @@ function SalesSlide({ sales, deck, n, total, pick }) {
   const labW = (compact ? 38 : 48) + (crossYear ? 18 : 0);
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="sales" seed={sales.id} />
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
         <LogoMark h={54} style={{ flex: 'none' }} />
-        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
+        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
         <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
@@ -378,7 +412,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             const ghost = maxV === 0;
             return (
               <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
-                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
@@ -388,7 +422,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
                     return (
                       <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
                         style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
-                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : T.bars[1], border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
+                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
                         {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
                       </Hit>
                     );
@@ -414,7 +448,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
         </div>
         )}
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
-          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.bars[1] }} />Total penjualan</span>}
+          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>}
           {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>}
           <span>% = capaian dari target</span>
           <span>▲ ▼ = dibanding bulan sebelumnya</span>
@@ -439,11 +473,11 @@ function SalesSlide({ sales, deck, n, total, pick }) {
 function CoverSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.cover, color: T.coverFg, fontFamily: T.font || "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="cover" seed="cover" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
-      <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
       </div>
       <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
@@ -462,11 +496,11 @@ function CoverSlide({ deck, ro, api }) {
 function ClosingSlide({ deck, ro, api }) {
   const T = themeOf(deck);
   return (
-    <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+    <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.cover, color: T.coverFg, fontFamily: T.font || "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="closing" seed="closing" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
-      <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
       </div>
       <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
@@ -476,7 +510,49 @@ function ClosingSlide({ deck, ro, api }) {
   );
 }
 
+/* ===== Canvasing: slide hasil kunjungan, 4 kartu per halaman ===== */
+const CANVAS_PER_PAGE = 4, CANVAS_MAX = 250;
+const canvasPages = (list) => {
+  const n = Math.max(1, Math.ceil(list.length / CANVAS_PER_PAGE));
+  return Array.from({ length: n }, (_, p) => ({ kind: 'canvas', key: p ? 'canvas-' + p : 'canvas', page: p, pages: n, count: list.length, entries: list.slice(p * CANVAS_PER_PAGE, (p + 1) * CANVAS_PER_PAGE) }));
+};
+function CanvasSlide({ item, deck, n, total }) {
+  const T = themeOf(deck), sem = semOf(T);
+  const sub = `${item.count} hasil kunjungan` + (item.pages > 1 ? ` · halaman ${item.page + 1}/${item.pages}` : '');
+  return (
+    <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <Deco T={T} kind="sales" seed="canvas" />
+      <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+        <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
+        <LogoMark h={54} style={{ flex: 'none' }} />
+        <div data-m="title" data-mt="l" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>Canvasing</div>
+        <div data-m="sub" data-mt="r" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>{sub}</div>
+      </div>
+      <div style={{ padding: '22px 48px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridAutoRows: 232, gap: 18 }}>
+        {item.entries.length === 0 && (
+          <div style={{ gridColumn: '1 / -1', height: 232, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 24 }}>Belum ada hasil canvasing</div>
+        )}
+        {item.entries.map((e, i) => (
+          <div key={e.id} data-m={`card-${i}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: 16, boxSizing: 'border-box', display: 'flex', gap: 18, minWidth: 0, overflow: 'hidden' }}>
+            {e.foto
+              ? <img src={e.foto} alt={'Foto canvasing ' + e.kontraktor} style={{ width: 196, height: 196, objectFit: 'cover', borderRadius: Math.min(T.cardR, 14), flex: 'none' }} />
+              : <div style={{ width: 196, height: 196, flex: 'none', borderRadius: Math.min(T.cardR, 14), border: `2px dashed ${T.axis}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 16 }}>Tanpa foto</div>}
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 22, lineHeight: '28px', height: 28, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.kontraktor || 'Tanpa nama'}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: T.targetText }}>{e.produk}</div>
+              <div style={{ flex: 1, minHeight: 0, fontSize: 15, lineHeight: '20px', color: T.ink, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>{e.catatan}</div>
+              <div style={{ fontSize: 14, lineHeight: '18px', height: 18, color: T.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Oleh {e.sales}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div data-m="note" style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', justifyContent: 'flex-end', fontSize: 18, color: T.muted, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>{n} / {total}</div>
+    </div>
+  );
+}
+
 function SlideView({ item, deck, n, total, ro, api, pick }) {
+  if (item.kind === 'canvas') return <CanvasSlide item={item} deck={deck} n={n} total={total} />;
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
   return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
@@ -642,7 +718,7 @@ function Select({ id, value, options, onChange, disabled, placeholder, className
         <li key={o.key} role="option" aria-selected={o.key === value}
           onMouseDown={(e) => e.preventDefault()} onClick={() => choose(i)} onMouseEnter={() => setAct(i)}
           className="flex cursor-pointer items-center justify-between gap-2 rounded-md px-3 py-2 text-sm"
-          style={{ background: i === act ? 'var(--soft)' : 'transparent', fontWeight: o.key === value ? 600 : 400, color: 'var(--fg)' }}>
+          style={{ background: i === act ? 'var(--soft)' : 'transparent', fontWeight: o.key === value || o.color ? 600 : 400, color: o.color || 'var(--fg)' }}>
           <span className="truncate">{o.label}</span>
           {o.key === value && <svg className="h-4 w-4 shrink-0 text-[var(--accent)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" /></svg>}
         </li>
@@ -653,7 +729,7 @@ function Select({ id, value, options, onChange, disabled, placeholder, className
       <button ref={btn} id={id} type="button" role="combobox" aria-haspopup="listbox" aria-expanded={open} disabled={disabled}
         onClick={() => (open ? close() : openIt())} onKeyDown={onKey}
         className={'field flex items-center justify-between gap-2 text-left ' + (disabled ? 'opacity-60 cursor-default ' : 'cursor-pointer ') + (className || '')}>
-        <span className={'truncate ' + (cur ? '' : 'text-[var(--muted)]')}>{cur ? cur.label : (placeholder || 'Pilih')}</span>
+        <span className={'truncate ' + (cur ? '' : 'text-[var(--muted)]')} style={cur && cur.color ? { color: cur.color, fontWeight: 600 } : undefined}>{cur ? cur.label : (placeholder || 'Pilih')}</span>
         <Chevron />
       </button>
       {popup}
@@ -662,13 +738,97 @@ function Select({ id, value, options, onChange, disabled, placeholder, className
 }
 
 
-function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask, perm }) {
-  const ro = !perm.edit, adm = perm.admin;
+function shrinkImage(file, max = 900) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), im = new Image();
+    im.onload = () => {
+      const k = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(im.naturalWidth * k)); cv.height = Math.max(1, Math.round(im.naturalHeight * k));
+      const c = cv.getContext('2d'); c.fillStyle = '#fff'; c.fillRect(0, 0, cv.width, cv.height); c.drawImage(im, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url); res(cv.toDataURL('image/jpeg', 0.75));
+    };
+    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('img')); };
+    im.src = url;
+  });
+}
+function CanvasPanel({ cv, ask }) {
+  const blank = { id: null, kontraktor: '', produk: '', catatan: '', foto: null };
+  const [f, setF] = useState(blank);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const onFile = async (e) => {
+    const file = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { setErr('File harus berupa gambar'); return; }
+    try { const foto = await shrinkImage(file); setF((x) => ({ ...x, foto })); setErr(''); } catch (ex) { setErr('Foto tidak bisa dibaca'); }
+  };
+  const submit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    if (!f.kontraktor.trim()) { setErr('Isi nama kontraktor/konsumen'); return; }
+    if (!f.produk.trim()) { setErr('Isi produk yang ditawarkan'); return; }
+    setBusy(true); setErr('');
+    const ok = await cv.save({ ...f, kontraktor: f.kontraktor.trim(), produk: f.produk.trim(), catatan: f.catatan.trim().slice(0, CANVAS_MAX) });
+    setBusy(false);
+    if (ok) setF(blank);
+  };
+  return (
+    <>
+      <form onSubmit={submit} className="flex flex-col gap-3">
+        {f.id && <div className="rounded-md bg-[var(--soft)] px-3 py-2 text-sm font-medium">Mengubah data canvasing yang sudah ada</div>}
+        <div><label className="lbl" htmlFor="cv-kontraktor">Nama kontraktor / konsumen</label><input id="cv-kontraktor" className="field" maxLength={120} value={f.kontraktor} onChange={(e) => setF({ ...f, kontraktor: e.target.value })} /></div>
+        <div><label className="lbl" htmlFor="cv-produk">Produk yang ditawarkan</label><input id="cv-produk" className="field" maxLength={160} value={f.produk} onChange={(e) => setF({ ...f, produk: e.target.value })} /></div>
+        <div>
+          <div className="flex items-end justify-between"><label className="lbl" htmlFor="cv-catatan">Catatan</label><span className="mb-1 text-xs text-[var(--muted)]" aria-live="polite">{f.catatan.length}/{CANVAS_MAX}</span></div>
+          <textarea id="cv-catatan" className="field" rows={4} maxLength={CANVAS_MAX} value={f.catatan} onChange={(e) => setF({ ...f, catatan: e.target.value.slice(0, CANVAS_MAX) })} />
+        </div>
+        <div>
+          <span className="lbl">Foto hasil canvasing</span>
+          <div className="flex items-center gap-3">
+            {f.foto ? <img src={f.foto} alt="Pratinjau foto" className="h-16 w-16 shrink-0 rounded-lg border border-[var(--line)] object-cover" /> : <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--line)] text-xs text-[var(--muted)]">Belum ada</span>}
+            <div className="flex min-w-0 flex-col gap-1.5">
+              <label htmlFor="cv-foto" className="btn cursor-pointer text-sm">{f.foto ? 'Ganti foto' : 'Pilih foto'}</label>
+              <input id="cv-foto" type="file" accept="image/*" className="sr-only" onChange={onFile} />
+              {f.foto && <button type="button" className="text-left text-xs font-medium text-[var(--danger)]" onClick={() => setF({ ...f, foto: null })}>Hapus foto</button>}
+            </div>
+          </div>
+        </div>
+        {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</div>}
+        <div className={'grid gap-2 ' + (f.id ? 'grid-cols-2' : 'grid-cols-1')}>
+          <button type="submit" disabled={busy} className="btn btn-green">{busy ? 'Menyimpan…' : f.id ? 'Simpan perubahan' : 'Tambah canvasing'}</button>
+          {f.id && <button type="button" className="btn" onClick={() => { setF(blank); setErr(''); }}>Batal</button>}
+        </div>
+      </form>
+      <div className="border-t border-[var(--line)] pt-3">
+        <div className="head mb-2 font-semibold">Daftar canvasing <span className="text-sm font-normal text-[var(--muted)]">({cv.list.length})</span></div>
+        {cv.list.length === 0 && <p className="m-0 text-sm text-[var(--muted)]">Belum ada hasil canvasing.</p>}
+        <ul className="m-0 flex list-none flex-col gap-2 p-0">
+          {cv.list.map((e, i) => (
+            <li key={e.id} style={tintOf(i)} className="flex items-center gap-2 rounded-lg border p-2">
+              {e.foto ? <img src={e.foto} alt="" className="h-11 w-11 shrink-0 rounded-md object-cover" /> : <span className="h-11 w-11 shrink-0 rounded-md bg-[var(--soft)]" />}
+              <div className="min-w-0 flex-1 text-sm"><div className="truncate font-semibold">{e.kontraktor}</div><div className="truncate text-xs text-[var(--muted)]">{e.produk} · {e.sales}</div></div>
+              {cv.canManage(e) && (
+                <div className="flex shrink-0 gap-1">
+                  <button type="button" className="btn px-3 py-1 text-xs" onClick={() => { setF({ id: e.id, kontraktor: e.kontraktor, produk: e.produk, catatan: e.catatan, foto: e.foto || null }); setErr(''); }}>Ubah</button>
+                  <button type="button" className="btn btn-danger px-3 py-1 text-xs" onClick={() => ask({ title: 'Hapus canvasing?', body: `Data canvasing ${e.kontraktor} beserta fotonya akan dihapus.`, confirm: 'Hapus', onConfirm: () => cv.del(e.id) })}>Hapus</button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
+function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask, perm, cv }) {
+  const ro = item.kind === 'canvas' ? false : !perm.edit, adm = perm.admin;
   return (
     <aside className="shrink-0 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-3 flex flex-col gap-3 lg:w-[22rem] lg:overflow-y-auto">
-      <div className="head font-semibold text-base">Isi data</div>
+      <div className="head font-semibold text-base">{item.kind === 'canvas' ? 'Form canvasing' : 'Isi data'}</div>
       {ro && <div className="rounded-md bg-[var(--soft)] px-3 py-2 text-xs text-[var(--muted)]">{item.kind === 'sales' ? `Slide ini milik ${item.sales.name || 'sales lain'}. Kamu hanya bisa melihatnya.` : 'Bagian ini hanya bisa diubah admin.'}</div>}
 
+      {item.kind === 'canvas' && <CanvasPanel cv={cv} ask={ask} />}
       {item.kind === 'cover' && (
         <>
           <div><label className="lbl" htmlFor="c-title">Judul</label><input disabled={ro} id="c-title" className="field" value={deck.cover.title} onChange={(e) => api.setCover({ title: e.target.value })} /></div>
@@ -738,7 +898,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
             </div>
             {adm && <div className="grid grid-cols-3 gap-2">
               <button className="btn" onClick={() => onMove(-1)} disabled={idx <= 1}>Naik</button>
-              <button className="btn" onClick={() => onMove(1)} disabled={idx >= count - 2}>Turun</button>
+              <button className="btn" onClick={() => onMove(1)} disabled={idx >= deck.sales.length}>Turun</button>
               <button className="btn btn-danger" onClick={onDelete} disabled={deck.sales.length === 1}>Hapus</button>
             </div>}
           </>
@@ -1033,6 +1193,7 @@ async function convertSlide(item, deck, n, total, api, slide, pptx, ctx) {
 function slideNotes(it, deck) {
   if (it.kind === 'cover') return [deck.cover.title, deck.cover.sub, periodOf(deck), deck.cover.audience].filter(Boolean).join('\n');
   if (it.kind === 'closing') return [deck.closing.title, deck.closing.sub].filter(Boolean).join('\n');
+  if (it.kind === 'canvas') return it.entries.map((e) => `${e.kontraktor} (${e.sales}) - ${e.produk}: ${e.catatan}`).join('\n') || 'Belum ada hasil canvasing';
   const s = it.sales, keys = monthsOf(deck), out = [`${s.name} · ${sublineOf(deck)}`];
   s.brands.forEach((b) => {
     out.push(`${b.name}:`);
@@ -1044,14 +1205,14 @@ function slideNotes(it, deck) {
   if (s.note) out.push(`Catatan dari ${s.name}: “${s.note}”`);
   return out.join('\n');
 }
-const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
+const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : it.kind === 'canvas' ? 'Canvasing' + (it.pages > 1 ? ' ' + (it.page + 1) : '') : (it.sales.name || 'Tanpa nama');
 async function exportPptx(items, deck, api, onProgress) {
   await Promise.all([loadLib(LIB_PPTX), loadLib(LIB_ZIP), loadLib(LIB_CONV)]);
   onProgress(0, items.length);
   const pptx = new window.PptxGenJS();
   pptx.defineLayout({ name: 'DHOUSE', width: 13.333, height: 7.5 });
   pptx.layout = 'DHOUSE'; pptx.title = 'Presentasi Dhouse'; pptx.company = 'Dhouse';
-  const ctx = { orbs: [], slideIndex: 0 };
+  const ctx = { orbs: [], grads: [], slideIndex: 0 };
   for (let i = 0; i < items.length; i++) {
     onProgress(i, items.length);
     ctx.slideIndex = i;
@@ -1060,7 +1221,7 @@ async function exportPptx(items, deck, api, onProgress) {
     sl.addNotes(slideNotes(items[i], deck));
   }
   onProgress(items.length, items.length);
-  const buf = await window.DhouseExport.patchOrbs(await pptx.write({ outputType: 'arraybuffer' }), ctx.orbs, window.JSZip);
+  const buf = await window.DhouseExport.patchGrads(await window.DhouseExport.patchOrbs(await pptx.write({ outputType: 'arraybuffer' }), ctx.orbs, window.JSZip), ctx.grads, window.JSZip);
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `Presentasi-Dhouse-${new Date().toISOString().slice(0, 10)}.pptx`;
@@ -1097,6 +1258,26 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
       notify('File PPTX berhasil dibuat');
     } catch (e) { notify('Export gagal: ' + (e && e.message ? e.message : 'coba lagi'), 'err'); }
     setExporting(null);
+  };
+  const [canvas, setCanvas] = useState([]);
+  const who = isAdmin ? adminLabel(session.email) : session.name;
+  const loadCanvas = () => getToken().then((t) => canvasList(session, t)).then((l) => { if (Array.isArray(l)) setCanvas(l); }).catch(() => {});
+  useEffect(() => {
+    loadCanvas();
+    const t = setInterval(loadCanvas, 30000);
+    return () => clearInterval(t);
+  }, []);
+  const cv = {
+    list: canvas,
+    canManage: (e) => isAdmin || sameName(e.sales, session.name),
+    save: async (f) => {
+      try { await canvasSave(session, await getToken(), f, who); await loadCanvas(); notify(f.id ? 'Canvasing diperbarui' : 'Canvasing ditambahkan'); return true; }
+      catch (e) { notify('Gagal menyimpan canvasing. Coba lagi.', 'err'); return false; }
+    },
+    del: async (id) => {
+      try { await canvasDelete(session, await getToken(), id); await loadCanvas(); notify('Canvasing dihapus'); }
+      catch (e) { notify('Gagal menghapus canvasing', 'err'); }
+    },
   };
   const [mk, setMk] = useState(null);
   const [focusReq, setFocusReq] = useState(null);
@@ -1169,7 +1350,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     return () => clearTimeout(saveTimer.current);
   }, [deck]);
 
-  const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), { kind: 'closing', key: 'closing' }];
+  const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), ...canvasPages(canvas), { kind: 'closing', key: 'closing' }];
   const safeIdx = Math.min(idx, items.length - 1);
   const cur = items[safeIdx];
 
@@ -1303,7 +1484,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     onLogout('', 'Berhasil keluar');
   };
   const isMine = (it) => it.kind === 'sales' && sameName(it.sales.name, session.name);
-  const labelOf = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : (it.sales.name || 'Tanpa nama');
+  const labelOf = labelOfItem;
 
   return (
     <div className="flex flex-col gap-3 min-h-full lg:h-full">
@@ -1355,7 +1536,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           <nav ref={railRef} onScroll={updRail} aria-label="Daftar slide" className="flex gap-2 overflow-x-auto pb-2 lg:absolute lg:inset-0 lg:flex-col lg:overflow-x-hidden lg:overflow-y-auto lg:pb-0">
             {items.map((it, i) => (
               <button key={it.key} onClick={() => setIdx(i)} aria-current={i === safeIdx}
-                className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]') + (!isAdmin && !isMine(it) ? ' opacity-60 hover:opacity-100' : '')}>
+                className={'shrink-0 w-36 lg:w-full text-left rounded-md p-1 border-2 ' + (i === safeIdx ? 'border-[var(--accent)] bg-[var(--soft)]' : 'border-transparent hover:bg-[var(--soft)]') + (!isAdmin && !isMine(it) && it.kind !== 'canvas' ? ' opacity-60 hover:opacity-100' : '')}>
                 <div className="aspect-video rounded-sm overflow-hidden border border-[var(--line)] pointer-events-none"><Fit><SlideView item={it} deck={deck} n={i + 1} total={items.length} ro api={api} /></Fit></div>
                 <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}{!isAdmin && isMine(it) && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">Saya</span>}</div>
               </button>
@@ -1382,7 +1563,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </div>
         </main>
 
-        <Panel perm={{ edit: canEdit(cur), admin: isAdmin }} item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask}
+        <Panel perm={{ edit: canEdit(cur), admin: isAdmin }} item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask} cv={cv} cv={cv}
           onDelete={() => ask({ title: `Hapus slide ${cur.kind === 'sales' ? (cur.sales.name || 'ini') : ''}?`.replace('  ', ' '), body: 'Semua brand, angka, dan catatan pada slide ini ikut terhapus.', confirm: 'Hapus slide', onConfirm: delSales })} />
       </div>
 
@@ -1415,39 +1596,38 @@ function Backdrop() {
   );
 }
 
+const ADMIN_PICK = '__admin__';
 function LoginScreen({ onLogin, notice, notify }) {
-  const [tab, setTab] = useState('sales');
   const [names, setNames] = useState(null);
   const [name, setName] = useState('');
   const [pass, setPass] = useState('');
-  const [email, setEmail] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(notice || '');
   useEffect(() => { salesNames().then((n) => setNames(Array.isArray(n) ? n.filter((x) => !ADMIN_USERS[adminKey(x)]) : [])).catch(() => setNames([])); }, []);
+  const adminUser = Object.keys(ADMIN_USERS)[0];
+  const isAdminPick = name === ADMIN_PICK;
+  /* satu daftar nama: admin di paling atas (merah), lalu semua sales */
+  const options = [{ key: ADMIN_PICK, label: adminUser.charAt(0).toUpperCase() + adminUser.slice(1) + ' (Admin)', color: '#d92d20' }, ...(names || []).map((n) => ({ key: n, label: n }))];
   const submit = async (e) => {
     e.preventDefault();
     setErr('');
     if (busy) return;
     setBusy(true);
     try {
-      if (tab === 'sales') {
-        if (!name) throw new Error('Pilih nama sales dulu');
+      if (!name) throw new Error('Pilih nama dulu');
+      if (isAdminPick) {
+        if (!pass) throw new Error('Isi password');
+        const sess = await adminLogin(adminUser, pass);
+        onLogin(sess, null);
+      } else {
         const d = await salesLogin(name, pass.trim());
         if (!d) throw new Error('Password salah');
         salesLog(name, pass.trim(), 'masuk');
         onLogin({ role: 'sales', name, pass: pass.trim() }, d);
-      } else {
-        if (!email.trim() || !pass) throw new Error('Isi username dan password');
-        const sess = await adminLogin(email, pass);
-        onLogin(sess, null);
       }
     } catch (ex) { const m = ex.message || 'Gagal masuk. Coba lagi.'; setErr(m); notify('Gagal masuk: ' + m, 'err'); setBusy(false); }
   };
-  const tabBtn = (k, t) => (
-    <button type="button" role="tab" aria-selected={tab === k} onClick={() => { setTab(k); setErr(''); setPass(''); }}
-      className={'flex-1 rounded-lg px-3 py-2 text-sm font-semibold transition ' + (tab === k ? 'seg-on' : 'text-[var(--muted)] hover:text-[var(--fg)]')}>{t}</button>
-  );
   return (
     <div className="flex min-h-[85vh] items-center justify-center py-6">
       <form onSubmit={submit} className="glass-card w-full max-w-sm p-6 flex flex-col gap-4">
@@ -1455,17 +1635,11 @@ function LoginScreen({ onLogin, notice, notify }) {
           <span className="logo-glow" aria-hidden="true"><img src={LOGO_SRC} alt="" width="64" height="45" /></span>
           <div><h1 className="head m-0 text-xl font-bold leading-tight">Presentasi Dhouse</h1><p className="m-0 text-xs text-[var(--muted)]">Masuk untuk melihat dan mengisi laporan</p></div>
         </div>
-        <div role="tablist" aria-label="Jenis akun" className="seg flex gap-1 p-1">{tabBtn('sales', 'Sales')}{tabBtn('admin', 'Admin')}</div>
-        {tab === 'sales' ? (
-          <div><label className="lbl" htmlFor="l-name">Nama sales</label>
-            <Select id="l-name" value={name} onChange={setName} placeholder={names === null ? 'Memuat daftar…' : names.length ? 'Pilih nama' : 'Daftar belum tersedia'} options={(names || []).map((n) => ({ key: n, label: n }))} /></div>
-        ) : (
-          <div><label className="lbl" htmlFor="l-email">Username</label>
-            <input id="l-email" className="field" type="text" placeholder="Toni" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-        )}
+        <div><label className="lbl" htmlFor="l-name">Nama</label>
+          <Select id="l-name" value={name} onChange={(v) => { setName(v); setPass(''); setErr(''); }} placeholder={names === null ? 'Memuat daftar…' : 'Pilih nama'} options={options} /></div>
         <div><label className="lbl" htmlFor="l-pass">Password</label>
           <div className="relative">
-            <input id="l-pass" className="field pr-16" type={show ? 'text' : 'password'} autoComplete={tab === 'admin' ? 'current-password' : 'off'} autoCapitalize="none" value={pass} onChange={(e) => setPass(e.target.value)} />
+            <input id="l-pass" className="field pr-16" type={show ? 'text' : 'password'} autoComplete={isAdminPick ? 'current-password' : 'off'} autoCapitalize="none" value={pass} onChange={(e) => setPass(e.target.value)} />
             <button type="button" onClick={() => setShow((v) => !v)} className="absolute right-1 top-1/2 -translate-y-1/2 rounded-md px-2 py-1 text-xs font-medium text-[var(--muted)] hover:bg-[var(--soft)]">{show ? 'Sembunyi' : 'Lihat'}</button>
           </div></div>
         {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</div>}

@@ -46,6 +46,14 @@
     return o;
   }
 
+  function parseLinear(cs) {
+    const m = (cs.backgroundImage || '').match(/^linear-gradient\(([^]*)\)$/);
+    if (!m) return null;
+    const cols = (m[1].match(/rgba?\([^)]+\)/g) || []).map(parseColor).filter(Boolean);
+    if (cols.length < 2) return null;
+    const a = m[1].match(/(-?[\d.]+)deg/);
+    return { cols, deg: a ? parseFloat(a[1]) : 180 };
+  }
   const isBlank = (t) => !t || !t.replace(/[\s ]+/g, '');
   function hasBox(el) {
     const cs = getComputedStyle(el);
@@ -87,9 +95,17 @@
     return s.trimEnd() + '…';
   }
 
-  async function imgData(img) {
+  async function imgData(img, box) {
     try {
-      const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      const cv = document.createElement('canvas'), nw = img.naturalWidth, nh = img.naturalHeight;
+      if (box && getComputedStyle(img).objectFit === 'cover' && nw && nh) {
+        // pangkas seperti object-fit: cover supaya foto tidak gepeng di PowerPoint
+        const k = Math.max(box.w / nw, box.h / nh), sw = box.w / k, sh = box.h / k, sc = Math.min(2, nw / sw);
+        cv.width = Math.round(box.w * sc); cv.height = Math.round(box.h * sc);
+        cv.getContext('2d').drawImage(img, (nw - sw) / 2, (nh - sh) / 2, sw, sh, 0, 0, cv.width, cv.height);
+        return cv.toDataURL('image/jpeg', 0.9);
+      }
+      cv.width = nw; cv.height = nh;
       cv.getContext('2d').drawImage(img, 0, 0); return cv.toDataURL('image/png');
     } catch (e) {
       const blob = await (await fetch(img.src)).blob();
@@ -110,7 +126,9 @@
     const inch = (r) => ({ x: r.x * PX, y: r.y * PX, w: r.w * PX, h: r.h * PX });
 
     const bg = parseColor(getComputedStyle(root).backgroundColor);
-    if (bg) slide.background = { color: bg.hex };
+    const bgG = parseLinear(getComputedStyle(root));
+    if (bgG) { slide.background = { color: bgG.cols[0].hex }; ctx.grads.push({ slide: ctx.slideIndex, name: '__bg', ...bgG, alpha: 1 }); }
+    else if (bg) slide.background = { color: bg.hex };
 
     // ---- bola 3D: lingkaran dengan gradasi radial (diisi gradasi pada tahap patchOrbs)
     root.querySelectorAll('[data-m^="orb"]').forEach((el) => {
@@ -142,11 +160,12 @@
       const name = () => { const n = nameFor(myScope, firstOfKey); firstOfKey = false; return n; };
 
       if (el.tagName === 'IMG') {
-        slide.addImage({ data: await imgData(el), x: i.x, y: i.y, w: i.w, h: i.h, objectName: name(), altText: el.alt || '' });
+        slide.addImage({ data: await imgData(el, r), x: i.x, y: i.y, w: i.w, h: i.h, objectName: name(), altText: el.alt || '' });
         return;
       }
 
-      const fill = parseColor(cs.backgroundColor), hasFill = fill && fill.a > 0;
+      const grad = parseLinear(cs);
+      const fill = grad ? grad.cols[0] : parseColor(cs.backgroundColor), hasFill = !!fill && (grad || fill.a > 0);
       const bs = sides(cs), anyBorder = bs.some((b) => b.on), uniform = bs.every((b) => b.on) && bs.every((b) => b.w === bs[0].w && b.style === bs[0].style && b.c.hex === bs[0].c.hex);
       const rad = radii(cs), maxR = Math.max(...rad), same = rad.every((v) => v === rad[0]);
       const shadow = hasFill ? parseShadow(cs.boxShadow) : null;
@@ -201,7 +220,7 @@
       }
 
       // wadah: bentuk dulu, lalu anak-anaknya
-      if (needShape) slide.addShape(shapeType, { ...shapeOpts(), objectName: name() });
+      if (needShape) { const nm = name(); slide.addShape(shapeType, { ...shapeOpts(), objectName: nm }); if (grad) ctx.grads.push({ slide: ctx.slideIndex, name: nm, ...grad, alpha: op }); }
       if (!uniform && anyBorder) {
         bs.filter((b) => b.on).forEach((b) => {
           const o = { line: { color: b.c.hex, width: b.w * PT, dashType: /dash/.test(b.style) ? 'dash' : 'solid', transparency: transp(b.c.a, op) }, objectName: name() };
@@ -245,5 +264,25 @@
     return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
   }
 
-  window.DhouseExport = { convert, patchOrbs };
+  /* Isi gradasi linear (latar slide dan bar) di XML slide */
+  async function patchGrads(buf, grads, JSZipLib) {
+    if (!grads.length) return buf;
+    const zip = await JSZipLib.loadAsync(buf);
+    const by = {};
+    grads.forEach((g) => { (by[g.slide] = by[g.slide] || []).push(g); });
+    for (const k of Object.keys(by)) {
+      const path = `ppt/slides/slide${+k + 1}.xml`; let xml = await zip.file(path).async('string');
+      for (const g of by[k]) {
+        const stops = g.cols.map((c, i) => `<a:gs pos="${Math.round((i / (g.cols.length - 1)) * 100000)}"><a:srgbClr val="${c.hex}"><a:alpha val="${Math.round(c.a * g.alpha * 100000)}"/></a:srgbClr></a:gs>`).join('');
+        const grad = `<a:gradFill rotWithShape="1"><a:gsLst>${stops}</a:gsLst><a:lin ang="${(((g.deg - 90) % 360) + 360) % 360 * 60000}" scaled="0"/></a:gradFill>`;
+        if (g.name === '__bg') { xml = xml.replace(/(<p:bg>[\s\S]*?)<a:solidFill>[\s\S]*?<\/a:solidFill>/, `$1${grad}`); continue; }
+        const esc = g.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        xml = xml.replace(new RegExp(`(<p:sp>(?:(?!</p:sp>)[\\s\\S])*?name="${esc}"[\\s\\S]*?<p:spPr>[\\s\\S]*?)<a:solidFill>[\\s\\S]*?</a:solidFill>`), `$1${grad}`);
+      }
+      zip.file(path, xml);
+    }
+    return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+  }
+
+  window.DhouseExport = { convert, patchOrbs, patchGrads };
 })();
