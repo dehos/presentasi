@@ -179,6 +179,10 @@ async function canvasDelete(session, tok, id) {
   }
   return rpc('lp_canvas_delete', { p_name: session.name, p_pass: session.pass, p_id: id });
 }
+/* Riwayat hanya mencatat sales (admin tidak ditampilkan) dan yang terbaru di paling atas */
+const onlySales = (rows) => (Array.isArray(rows) ? rows : [])
+  .filter((r) => !ADMIN_USERS[adminKey(r.actor)])
+  .sort((a, b) => new Date(b.last_at || b.at) - new Date(a.last_at || a.at));
 async function loadActivity(tok) {
   const r = await fetch(SB_BASE + '/rest/v1/lp_activity?select=*&order=last_at.desc&limit=200', { headers: sbHead(tok) });
   if (!r.ok) throw new Error('act ' + r.status);
@@ -866,8 +870,8 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 <div key={b.id} style={tintOf(bi)} className="rounded-lg border p-2 flex flex-col gap-2">
                   <div className="flex gap-2">
                     <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
-                    <button className="btn btn-danger" aria-label={`Hapus ${b.name}`} disabled={ro || s.brands.length === 1}
-                      onClick={() => ask({ title: `Hapus ${b.name || 'brand ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus</button>
+                    <button className="btn btn-danger" aria-label={`Hapus data ${b.name} ${BULAN[parseKey(ck).m]}`} title={`Hapus angka ${BULAN[parseKey(ck).m]} saja`} disabled={ro || (!c.total && !c.target)}
+                      onClick={() => ask({ title: `Hapus data ${b.name || 'brand ini'}?`, body: `Total dan target ${BULAN[parseKey(ck).m]} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dihapus. Bulan lain dan brand tetap.`, confirm: 'Hapus data bulan ini', onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Hapus</button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -879,7 +883,11 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                       <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
                     </div>
                   </div>
-                  {st.pct != null && <div className="text-xs text-[var(--muted)]">Capaian {Math.round(st.pct)}% dari target</div>}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-xs text-[var(--muted)]">{st.pct != null ? `Capaian ${Math.round(st.pct)}% dari target` : ''}</div>
+                    <button type="button" className="text-xs font-medium text-[var(--danger)] disabled:opacity-40" disabled={ro || s.brands.length === 1}
+                      onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
+                  </div>
                 </div>
               );
             })}
@@ -1024,7 +1032,7 @@ function Bar({ label, n, of }) {
 function ActivityModal({ deck, getToken, onClose }) {
   const [rows, setRows] = useState(null);
   const [err, setErr] = useState('');
-  const load = () => { setErr(''); getToken().then(loadActivity).then(setRows).catch(() => setErr('Riwayat belum bisa dimuat.')); };
+  const load = () => { setErr(''); getToken().then(loadActivity).then((r) => setRows(onlySales(r))).catch(() => setErr('Riwayat belum bisa dimuat.')); };
   useEffect(() => { load(); const t = setInterval(load, 20000); return () => clearInterval(t); }, []);
   useEffect(() => {
     const k = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
@@ -1372,6 +1380,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name: name.toUpperCase() } : x)) })),
     setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p } } } })),
     addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('BRAND ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
+    clearCell: (sid, key, bid) => mapSales(sid, (s) => { const { [bid]: _x, ...rest } = s.data[key] || {}; return { ...s, data: { ...s.data, [key]: rest } }; }),
     delBrand: (sid, bid) => mapSales(sid, (s) => {
       if (s.brands.length <= 1) return s;
       const data = {};
