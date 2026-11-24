@@ -886,7 +886,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                       </div>
                       <div>
                         <label className="lbl" htmlFor={`t-${b.id}-${ck}`}>Target</label>
-                        <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
+                        <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} onBlur={() => api.fillTarget(s.id, ck, b.id, keys)} />
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-[var(--muted)]" aria-live="polite">
@@ -895,7 +895,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                     </div>
                     {!ro && (
                       <div className="flex items-center gap-2 border-t border-black/10 pt-3">
-                        <button type="button" className="btn flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={!c.total && !c.target}
+                        <button type="button" className="btn flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={!!c.skip}
                           onClick={() => ask({ title: `Kosongkan angka ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dikosongkan. Bulan lain dan brand tetap.`, confirm: `Kosongkan ${mName}`, onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Kosongkan {BULAN_PENDEK[parseKey(ck).m]}</button>
                         <button type="button" className="btn btn-danger flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={s.brands.length === 1}
                           onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
@@ -1036,7 +1036,7 @@ function progressOf(deck) {
     let cells = 0, om = 0, tg = 0;
     const perMonth = keys.map((k) => {
       let o = 0, t = 0;
-      s.brands.forEach((b) => { const v = cellOf(s, k, b.id); cells++; if (digits(v.total) !== '') { o++; om++; } if (digits(v.target) !== '') { t++; tg++; } });
+      s.brands.forEach((b) => { const v = cellOf(s, k, b.id); cells++; if (v.skip || digits(v.total) !== '') { o++; om++; } if (v.skip || digits(v.target) !== '') { t++; tg++; } });
       return { k, c: s.brands.length, o, t };
     });
     return { s, cells, om, tg, perMonth };
@@ -1071,21 +1071,7 @@ function ActivityModal({ deck, getToken, onClose }) {
           <div className="flex gap-2"><button type="button" className="btn" onClick={load}>Muat ulang</button><button type="button" className="btn" onClick={onClose} autoFocus>Tutup</button></div>
         </div>
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          <h3 className="head m-0 mb-2 text-sm font-semibold">Progres pengisian ({rangeText(deck)})</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {prog.map(({ s, cells, om, tg, perMonth }) => (
-              <div key={s.id} className="rounded-xl border border-[var(--line)] bg-white p-3">
-                <div className="flex items-baseline justify-between gap-2"><span className="font-semibold">{s.name || 'Tanpa nama'}</span><span className="text-xs text-[var(--muted)]">{s.brands.length} brand</span></div>
-                <div className="mt-2 grid gap-2"><Bar label="Omzet terisi" n={om} of={cells} /><Bar label="Target terisi" n={tg} of={cells} /></div>
-                <div className="mt-2 flex flex-wrap gap-1">
-                  {perMonth.map((m) => <span key={m.k} className="rounded-full bg-[var(--soft)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{BULAN_PENDEK[parseKey(m.k).m]} {m.o}/{m.c} · {m.t}/{m.c}</span>)}
-                </div>
-                <div className="mt-2 text-xs text-[var(--muted)]">Masuk terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'masuk')}</b> · Edit terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'edit')}</b></div>
-              </div>
-            ))}
-          </div>
-          <p className="mb-0 mt-1 text-[11px] text-[var(--muted)]">Per bulan: omzet terisi · target terisi, dari jumlah brand.</p>
-          <h3 className="head mb-2 mt-5 text-sm font-semibold">Aktivitas terbaru</h3>
+          <h3 className="head m-0 mb-2 text-sm font-semibold">Aktivitas terbaru</h3>
           {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
           {!rows && !err && <div className="text-sm text-[var(--muted)]">Memuat…</div>}
           {rows && rows.length === 0 && <div className="text-sm text-[var(--muted)]">Belum ada aktivitas sales.</div>}
@@ -1110,6 +1096,20 @@ function ActivityModal({ deck, getToken, onClose }) {
               );
             })}
           </ul>
+          <h3 className="head mb-2 mt-5 text-sm font-semibold">Progres pengisian ({rangeText(deck)})</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {prog.map(({ s, cells, om, tg, perMonth }) => (
+              <div key={s.id} className="rounded-xl border border-[var(--line)] bg-white p-3">
+                <div className="flex items-baseline justify-between gap-2"><span className="font-semibold">{s.name || 'Tanpa nama'}</span><span className="text-xs text-[var(--muted)]">{s.brands.length} brand</span></div>
+                <div className="mt-2 grid gap-2"><Bar label="Omzet terisi" n={om} of={cells} /><Bar label="Target terisi" n={tg} of={cells} /></div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {perMonth.map((m) => <span key={m.k} className="rounded-full bg-[var(--soft)] px-2 py-0.5 text-[11px] text-[var(--muted)]">{BULAN_PENDEK[parseKey(m.k).m]} {m.o}/{m.c} · {m.t}/{m.c}</span>)}
+                </div>
+                <div className="mt-2 text-xs text-[var(--muted)]">Masuk terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'masuk')}</b> · Edit terakhir: <b className="text-[var(--fg)]">{lastOf(s.name, 'edit')}</b></div>
+              </div>
+            ))}
+          </div>
+          <p className="mb-0 mt-1 text-[11px] text-[var(--muted)]">Per bulan: omzet terisi · target terisi, dari jumlah brand.</p>
         </div>
       </div>
     </div>
@@ -1400,9 +1400,15 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
     setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name: name.toUpperCase() } : x)) })),
-    setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p } } } })),
+    setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p, skip: false } } } })),
+    fillTarget: (sid, key, bid, keys) => mapSales(sid, (s) => {
+      const t = digits(cellOf(s, key, bid).target); if (t === '') return s;
+      const data = { ...s.data };
+      keys.forEach((k) => { const c = cellOf(s, k, bid); if (k !== key && !c.skip && digits(c.target) === '') data[k] = { ...(data[k] || {}), [bid]: { ...c, target: t } }; });
+      return { ...s, data };
+    }),
     addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('BRAND ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
-    clearCell: (sid, key, bid) => mapSales(sid, (s) => { const { [bid]: _x, ...rest } = s.data[key] || {}; return { ...s, data: { ...s.data, [key]: rest } }; }),
+    clearCell: (sid, key, bid) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { total: '', target: '', skip: true } } } })),
     delBrand: (sid, bid) => mapSales(sid, (s) => {
       if (s.brands.length <= 1) return s;
       const data = {};
