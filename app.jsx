@@ -1629,11 +1629,12 @@ function LoginScreen({ onLogin, notice, notify }) {
     } catch (ex) { const m = ex.message || 'Gagal masuk. Coba lagi.'; setErr(m); notify('Gagal masuk: ' + m, 'err'); setBusy(false); }
   };
   return (
-    <div className="flex min-h-[85vh] items-center justify-center py-6">
-      <form onSubmit={submit} className="glass-card w-full max-w-sm p-6 flex flex-col gap-4">
+    <div className="login-bg">
+      <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 py-8">
+      <form onSubmit={submit} className="login-glass w-full max-w-sm p-6 flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <span className="logo-glow" aria-hidden="true"><img src={LOGO_SRC} alt="" width="64" height="45" /></span>
-          <div><h1 className="head m-0 text-xl font-bold leading-tight">Presentasi Dhouse</h1><p className="m-0 text-xs text-[var(--muted)]">Masuk untuk melihat dan mengisi laporan</p></div>
+          <div><h1 className="head m-0 text-xl font-bold leading-tight">Presentasi Dhouse</h1><p className="m-0 text-xs" style={{ color: 'rgba(255,255,255,0.85)' }}>Masuk untuk melihat dan mengisi laporan</p></div>
         </div>
         <div><label className="lbl" htmlFor="l-name">Nama</label>
           <Select id="l-name" value={name} onChange={(v) => { setName(v); setPass(''); setErr(''); }} placeholder={names === null ? 'Memuat daftar…' : 'Pilih nama'} options={options} /></div>
@@ -1645,6 +1646,8 @@ function LoginScreen({ onLogin, notice, notify }) {
         {err && <div role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700">{err}</div>}
         <button type="submit" disabled={busy} className="btn btn-primary btn-gloss w-full py-2.5 text-base font-semibold">{busy ? 'Masuk…' : 'Masuk'}</button>
       </form>
+      <p className="m-0 text-center text-xs text-white/85">Copyright by Toni 2026</p>
+      </div>
     </div>
   );
 }

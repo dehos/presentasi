@@ -81,3 +81,14 @@ button:focus-visible, select:focus-visible { outline: 2px solid #101828; outline
 
 .logo-glow { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 72px; height: 56px; }
 .logo-glow img { width: 64px; height: auto; }
+
+/* Halaman login: latar gambar penuh dan formulir kaca transparan bersudut bulat lembut */
+.login-bg { position: fixed; inset: 0; z-index: 5; overflow-y: auto; background: #2a7fc4 url(login-bg.jpg) center / cover no-repeat; }
+.login-glass { background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.5); border-radius: 32px; color: #fff; -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15); box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 20px 40px -18px rgba(8,40,90,.5); }
+.login-glass .lbl { color: rgba(255,255,255,.92); }
+.login-glass .field { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.5); border-radius: 16px; color: #fff; }
+.login-glass .field::placeholder, .login-glass .text-\[var\(--muted\)\] { color: rgba(255,255,255,.78); }
+.login-glass .field:focus, .login-glass .field:focus-visible { background: rgba(255,255,255,.28); border-color: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.35); }
+.login-glass .btn-primary { border-radius: 16px; background: #0f2a4d; border-color: #0f2a4d; }
+.login-glass button:not(.btn):hover { background: rgba(255,255,255,.2); }
+.login-glass button { color: inherit; }
