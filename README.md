@@ -24,6 +24,10 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Di tabel angka tiap brand, bulan terbaru berada di baris paling atas (bar grafik tetap urut dari bulan awal ke akhir)
 - Admin: menu Data → **Rentang bulan** mengubah rentang yang langsung dipakai semua slide sales, ringkasan, dan export
 
+- Login admin memakai username (**Toni**), bukan email; Toni tidak muncul di daftar login sales
+- Tombol **Download** (PPTX) hanya untuk admin; tombol **Lihat Presentasi** untuk semua
+- Tema slide ada 4 model: Langit (kaca + bola 3D), Korporat (header gelap, kartu tegas, kotak), Malam neon (kartu bulat, cincin), Editorial (garis tegas, lingkaran datar). Tema lama otomatis dipetakan ke 4 model ini
+
 ## Export PPTX
 
 Tombol **Export PPTX** di header membuat file `.pptx` berisi semua slide (sampul, tiap sales, penutup) sebagai **objek asli PowerPoint**: teks, kotak kartu, bar grafik, garis target, label persen, bola 3D (bentuk bergradasi) dan logo, semuanya bisa diedit. Posisi dan gaya dibaca dari hasil render web (`pptx-export.js`), jadi tampilannya mengikuti web. Font Inter dan Space Grotesk perlu terpasang di komputer agar tampilan identik.

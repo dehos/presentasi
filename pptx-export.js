@@ -130,8 +130,8 @@
     // ---- elemen biasa
     async function walk(el, scope) {
       if (el.nodeType !== 1) return;
-      if (el.dataset && el.dataset.m && el.dataset.m.startsWith('orb')) return;
       const cs = getComputedStyle(el);
+      if (el.dataset && el.dataset.m && el.dataset.m.startsWith('orb') && /radial-gradient/.test(cs.backgroundImage)) return; // bola 3D ditangani terpisah
       if (cs.display === 'none' || cs.visibility === 'hidden') return;
       const rect = el.getBoundingClientRect();
       if (rect.width < 0.5 && rect.height < 0.5) return;

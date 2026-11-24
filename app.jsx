@@ -3,18 +3,16 @@ const { useState, useEffect, useLayoutEffect, useRef, useCallback } = React;
 const W = 1280, H = 720;
 const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
 
+/* 4 model slide: bukan hanya beda warna, bentuk header, kartu, bar, hiasan latar, dan penanda sampul juga berbeda */
 const SLIDE_THEMES = {
-  langit: { name: 'Langit', paper: '#e8f1f8', ink: '#13243a', muted: '#5d7288', grid: '#cfdeeb', axis: '#a9bfd3', header: '#dbe7f1', headerFg: '#13243a', headerSub: '#5d7288', cover: '#e8f1f8', coverFg: '#13243a', coverSub: '#2f6fed', coverMuted: '#5d7288', accent: '#2f6fed', bars: ['#a9c4f7', '#2f6fed', '#a9c4f7'], target: '#e08a1e', targetText: '#b3690d', card: '#ffffff' },
-  lautan: { name: 'Lautan', paper: '#0f2f3a', ink: '#eaf4f4', muted: '#8fb3b8', grid: '#25505e', axis: '#3b6a78', header: '#0a2630', headerFg: '#ffffff', headerSub: '#8fd8c4', cover: '#0f2f3a', coverFg: '#ffffff', coverSub: '#8fd8c4', coverMuted: '#8fb3b8', accent: '#5ad1b0', bars: ['#2e7f78', '#5ad1b0', '#2e7f78'], target: '#f2b45a', targetText: '#f2b45a', card: 'rgba(255,255,255,0.06)' },
-  malam: { name: 'Malam ungu', paper: '#1c1a33', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: '#15132a', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#1c1a33', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffbe6b', targetText: '#ffbe6b', card: 'rgba(255,255,255,0.06)' },
-  pasir: { name: 'Pasir', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#e3d6c4', axis: '#c9b9a3', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3' },
-  navyteal: { name: 'Navy dan teal', paper: '#f7f9fc', ink: '#1f2a3d', muted: '#5b6680', grid: '#dfe3ea', axis: '#b4b2a9', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#EF9F27', targetText: '#a86a0a' },
-  remotion: { name: 'Remotion gelap', paper: '#1b1f24', ink: '#f2f4f7', muted: '#9aa4b2', grid: '#2c3238', axis: '#4a525b', header: '#0b84f3', headerFg: '#ffffff', headerSub: '#d6e9fd', cover: '#16191d', coverFg: '#ffffff', coverSub: '#5fb0f8', coverMuted: '#9aa4b2', accent: '#0b84f3', bars: ['#9fd0fb', '#0b84f3', '#0a5bb0'], target: '#f5b942', targetText: '#f5b942' },
-  terang: { name: 'Putih bersih', paper: '#ffffff', ink: '#111827', muted: '#6b7280', grid: '#e5e7eb', axis: '#9ca3af', header: '#eef2f7', headerFg: '#111827', headerSub: '#4b5563', cover: '#ffffff', coverFg: '#111827', coverSub: '#2563eb', coverMuted: '#6b7280', accent: '#2563eb', bars: ['#bfdbfe', '#60a5fa', '#1d4ed8'], target: '#f59e0b', targetText: '#b45309' },
-  ungu: { name: 'Ungu', paper: '#f8f7fd', ink: '#241c45', muted: '#6a6490', grid: '#e4e0f5', axis: '#b5aedb', header: '#2a1f5c', headerFg: '#ffffff', headerSub: '#cbbffc', cover: '#2a1f5c', coverFg: '#ffffff', coverSub: '#cbbffc', coverMuted: '#a99fda', accent: '#8b6cf7', bars: ['#d4c8ff', '#8b6cf7', '#5a3fd0'], target: '#EF9F27', targetText: '#a86a0a' },
-  senja: { name: 'Senja', paper: '#fdf8f5', ink: '#3a1f17', muted: '#8a6a5e', grid: '#f0e1da', axis: '#d3b8ab', header: '#5a2418', headerFg: '#ffffff', headerSub: '#f7c4a5', cover: '#5a2418', coverFg: '#ffffff', coverSub: '#f7c4a5', coverMuted: '#d9a994', accent: '#e4693b', bars: ['#f7c4a5', '#e4693b', '#a43a1a'], target: '#1d6fb8', targetText: '#1d6fb8' },
+  langit: { name: 'Langit', paper: '#e8f1f8', ink: '#13243a', muted: '#5d7288', grid: '#cfdeeb', axis: '#a9bfd3', header: '#dbe7f1', headerFg: '#13243a', headerSub: '#5d7288', cover: '#e8f1f8', coverFg: '#13243a', coverSub: '#2f6fed', coverMuted: '#5d7288', accent: '#2f6fed', bars: ['#a9c4f7', '#2f6fed', '#a9c4f7'], target: '#e08a1e', targetText: '#b3690d', card: '#ffffff', deco: 'orbs', hdrLine: 'none', cardR: 16, cardBorder: null, cardTop: null, barR: '5px 5px 0 0', coverBar: [96, 8, 0] },
+  korporat: { name: 'Korporat', paper: '#f4f6fa', ink: '#14213a', muted: '#5a6785', grid: '#dde2ec', axis: '#aeb7c8', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#e0861c', targetText: '#b3690d', card: '#ffffff', deco: 'squares', hdrLine: '6px solid #1D9E75', cardR: 4, cardBorder: null, cardTop: '5px solid #1D9E75', barR: '0', coverBar: [14, 72, 0] },
+  malam: { name: 'Malam neon', paper: '#17152e', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: 'transparent', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#17152e', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffb84d', targetText: '#ffb84d', card: 'rgba(255,255,255,0.06)', deco: 'rings', hdrLine: '3px solid #a995ff', cardR: 28, cardBorder: '1px solid #4a4580', cardTop: null, barR: '12px 12px 0 0', coverBar: [96, 4, 4] },
+  pasir: { name: 'Editorial', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#d9c9b3', axis: '#b9a68d', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3', deco: 'flat', hdrLine: '3px solid #2b2a28', cardR: 0, cardBorder: '2px solid #2b2a28', cardTop: null, barR: '0', coverBar: [140, 6, 0] },
 };
-const themeOf = (deck) => SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
+/* nama tema lama dipetakan ke 4 model baru */
+const THEME_ALIAS = { navy: 'langit', terang: 'langit', lautan: 'malam', remotion: 'malam', ungu: 'malam', navyteal: 'korporat', senja: 'pasir' };
+const themeOf = (deck) => SLIDE_THEMES[THEME_ALIAS[deck.slideTheme] || deck.slideTheme] || SLIDE_THEMES.langit;
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 const digits = (v) => String(v == null ? '' : v).replace(/\D/g, '');
@@ -75,7 +73,7 @@ const DEFAULT = {
 /* Nama brand selalu huruf besar semua */
 function migrate(d) {
   const r = migrateRaw(d);
-  return r && { ...r, sales: r.sales.map((x) => ({ ...x, brands: (x.brands || []).map((b) => ({ ...b, name: String(b.name || '').toUpperCase() })) })) };
+  return r && { ...r, slideTheme: THEME_ALIAS[r.slideTheme] || r.slideTheme, sales: r.sales.map((x) => ({ ...x, brands: (x.brands || []).map((b) => ({ ...b, name: String(b.name || '').toUpperCase() })) })) };
 }
 function migrateRaw(d) {
   if (!d || !Array.isArray(d.sales) || !d.cover || !d.closing) return null;
@@ -156,9 +154,15 @@ async function loadActivity(tok) {
 }
 
 const tokenToSession = (j, email) => ({ role: 'admin', email: email || (j.user && j.user.email) || '', access: j.access_token, refresh: j.refresh_token, exp: Date.now() + (j.expires_in || 3600) * 1000 });
-async function adminLogin(email, password) {
+/* Admin masuk dengan username (mis. Toni); Supabase Auth tetap memakai email di belakang layar */
+const ADMIN_USERS = { toni: 'toniimam87@gmail.com' };
+const adminKey = (v) => String(v || '').trim().toLowerCase().replace(/\s+/g, '');
+const adminEmail = (v) => ADMIN_USERS[adminKey(v)] || String(v || '').trim();
+const adminLabel = (email) => { const k = Object.keys(ADMIN_USERS).find((u) => ADMIN_USERS[u] === email); return k ? k.charAt(0).toUpperCase() + k.slice(1) : email; };
+async function adminLogin(user, password) {
+  const email = adminEmail(user);
   const r = await fetch(SB_BASE + '/auth/v1/token?grant_type=password', { method: 'POST', headers: sbHead(), body: JSON.stringify({ email, password }) });
-  if (!r.ok) throw new Error('Email atau password salah');
+  if (!r.ok) throw new Error('Username atau password salah');
   const sess = tokenToSession(await r.json(), email);
   let ok = false;
   try { ok = (await rpc('lp_is_admin', {}, sess.access)) === true; } catch (e) {}
@@ -234,11 +238,18 @@ function orbSpots(T, kind, seed) {
   return spots.map((o) => { const c1 = pick(); let c2 = pick(); if (c2 === c1 && pal.length > 1) c2 = pal[(pal.indexOf(c1) + 1) % pal.length]; return { ...o, c1, c2, op: between(0.5, 0.78), lx: between(24, 38), ly: between(20, 32) }; });
 }
 function Deco({ T, kind, seed }) {
-  return orbSpots(T, kind, seed).map((o, i) => (
-    <div key={i} aria-hidden="true" data-m={`orb${i}`} style={{ position: 'absolute', left: Math.round(o.x), top: Math.round(o.y), width: Math.round(o.s), height: Math.round(o.s), borderRadius: '50%', zIndex: -1, pointerEvents: 'none', opacity: kind === 'sales' ? Math.min(o.op, 0.6) : o.op,
+  const model = T.deco || 'orbs';
+  return orbSpots(T, kind, seed).map((o, i) => {
+    const base = { position: 'absolute', left: Math.round(o.x), top: Math.round(o.y), width: Math.round(o.s), height: Math.round(o.s), zIndex: -1, pointerEvents: 'none' };
+    let st;
+    if (model === 'rings') st = { ...base, borderRadius: Math.round(o.s / 2), border: `${Math.max(5, Math.round(o.s / 22))}px solid ${o.c1}`, opacity: Math.min(o.op, 0.7) * (kind === 'sales' ? 0.7 : 1) };
+    else if (model === 'squares') st = { ...base, borderRadius: Math.round(o.s / 10), background: o.c1, opacity: (kind === 'sales' ? 0.16 : 0.3) + (i ? 0.06 : 0) };
+    else if (model === 'flat') st = { ...base, borderRadius: Math.round(o.s / 2), background: o.c1, opacity: kind === 'sales' ? 0.2 : 0.3 };
+    else st = { ...base, borderRadius: Math.round(o.s / 2), opacity: kind === 'sales' ? Math.min(o.op, 0.6) : o.op,
       background: `radial-gradient(circle at ${o.lx.toFixed(0)}% ${o.ly.toFixed(0)}%, rgba(255,255,255,0.85) 0, rgba(255,255,255,0) 24%), radial-gradient(circle at ${(o.lx + 6).toFixed(0)}% ${(o.ly + 6).toFixed(0)}%, ${o.c1}, ${o.c2})`,
-      boxShadow: `inset -${Math.round(o.s / 14)}px -${Math.round(o.s / 11)}px ${Math.round(o.s / 6)}px rgba(0,0,0,0.2)` }} />
-  ));
+      boxShadow: `inset -${Math.round(o.s / 14)}px -${Math.round(o.s / 11)}px ${Math.round(o.s / 6)}px rgba(0,0,0,0.2)` };
+    return <div key={i} aria-hidden="true" data-m={`orb${i}`} style={st} />;
+  });
 }
 
 function Pct({ v, sem, muted, small }) {
@@ -295,7 +306,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
       {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 12, padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : '10px 12px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
               style={{ fontFamily: headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
@@ -348,7 +359,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
     <div data-m="bg" style={{ width: W, height: H, background: T.paper, color: T.ink, fontFamily: "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="sales" seed={sales.id} />
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
-        <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, background: T.header, zIndex: -1 }} />
+        <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
         <LogoMark h={54} style={{ flex: 'none' }} />
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
@@ -366,7 +377,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
             const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
             const ghost = maxV === 0;
             return (
-              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, flex: 1, minWidth: 0, background: sem.card, border: `1px solid ${T.grid}`, borderRadius: 16, padding: '16px 18px' }}>
+              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
@@ -377,7 +388,7 @@ function SalesSlide({ sales, deck, n, total, pick }) {
                     return (
                       <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
                         style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
-                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : T.bars[1], border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: '5px 5px 0 0' }} />
+                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : T.bars[1], border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
                         {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
                       </Hit>
                     );
@@ -431,7 +442,7 @@ function CoverSlide({ deck, ro, api }) {
     <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="cover" seed="cover" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
-      <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
+      <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
       </div>
@@ -454,7 +465,7 @@ function ClosingSlide({ deck, ro, api }) {
     <div data-m="bg" style={{ width: W, height: H, background: T.cover, color: T.coverFg, fontFamily: "'Inter', system-ui, sans-serif", padding: '0 96px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="closing" seed="closing" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
-      <div data-m="hdr" style={{ width: 96, height: 8, background: T.accent, marginBottom: 40 }} />
+      <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
       <div data-m="title" data-mt="l" style={{ fontFamily: headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
       </div>
@@ -685,7 +696,6 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 <label className="lbl" htmlFor="s-month">Bulan</label>
                 <Select id="s-month" value={ck} onChange={setMk} options={keys.map((k) => ({ key: k, label: BULAN[parseKey(k).m] }))} />
               </div>
-              {!ro && <button type="button" className="btn btn-primary shrink-0" onClick={onSave}>Simpan</button>}
             </div>
 
             <div className="head font-semibold">{BULAN[parseKey(ck).m]} {parseKey(ck).y}</div>
@@ -713,7 +723,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 </div>
               );
             })}
-            <button className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>
+            <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>{!ro ? <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button> : <span />}</div>
             <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea disabled={ro} id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
 
             <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
@@ -1279,7 +1289,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const hasData = deck.sales.some((s) => Object.keys(s.data || {}).length > 0);
   const syncDot = sync === 'tersimpan' ? 'bg-emerald-500' : sync === 'menyimpan' ? 'bg-amber-500' : sync === 'gagal' ? 'bg-red-500' : 'bg-slate-400';
   const syncText = sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Belum tersambung ke database' : 'Memuat…';
-  const curTheme = SLIDE_THEMES[deck.slideTheme] || SLIDE_THEMES.langit;
+  const curTheme = themeOf(deck);
 
   const leave = () => ask({
     title: 'Keluar dari akun?',
@@ -1301,17 +1311,17 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
         <div className="flex min-w-0 items-center gap-3">
           <img src={LOGO_SRC} alt="" width="38" height="27" className="h-[27px] w-[38px] shrink-0 object-contain" />
           <h1 className="head m-0 whitespace-nowrap text-lg font-bold">Presentasi Dhouse</h1>
-          <span role="status" className="inline-flex items-center gap-1.5 rounded-full bg-[var(--soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
-            <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + syncDot} /><span className="whitespace-nowrap"><span className="sr-only sm:not-sr-only">{syncText}</span><span aria-hidden="true" className="sm:hidden">{syncText.replace(' di database', '')}</span></span>
+          <span role="status" className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[var(--soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
+            <span className={'h-1.5 w-1.5 shrink-0 rounded-full ' + syncDot} /><span className="whitespace-nowrap"><span className="sr-only sm:not-sr-only">{syncText}</span><span aria-hidden="true" className="max-[359px]:hidden sm:hidden">{syncText.replace(' di database', '')}</span></span>
           </span>
           <span className="hidden max-w-[16rem] items-center truncate rounded-full border border-[var(--line)] bg-[var(--panel)] px-2.5 py-1 text-xs font-medium text-[var(--fg)] md:inline-flex">
-            {isAdmin ? 'Admin · ' + session.email : 'Sales · ' + session.name}
+            {isAdmin ? 'Admin · ' + adminLabel(session.email) : 'Sales · ' + session.name}
           </span>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {isAdmin && <Menu icon={<Swatch T={curTheme} />} label={<><span className="sr-only sm:not-sr-only">Tema</span><span className="hidden sm:inline">: {curTheme.name}</span></>} width={240}>
             {Object.entries(SLIDE_THEMES).map(([k, t]) => (
-              <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === deck.slideTheme} onClick={() => api.setSlideTheme(k)} />
+              <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === (THEME_ALIAS[deck.slideTheme] || deck.slideTheme)} onClick={() => api.setSlideTheme(k)} />
             ))}
           </Menu>}
           {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
@@ -1325,12 +1335,14 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
             <MenuItem danger title="Setel ulang" hint="Kembali ke data awal"
               onClick={() => ask({ title: 'Setel ulang semua data?', body: 'Semua sales, brand, angka, dan catatan kembali ke data awal.', confirm: 'Setel ulang', onConfirm: resetAll })} />
           </Menu>}
-          <button type="button" className={TOP_BTN} onClick={doExport} disabled={!!exporting} title="Unduh semua slide sebagai file PowerPoint (.pptx)">
-            <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg><span className="sr-only sm:not-sr-only">Export PPTX</span>
+          {isAdmin && (
+          <button type="button" className={TOP_BTN} onClick={doExport} disabled={!!exporting} title="Download semua slide sebagai file PowerPoint (.pptx)">
+            <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg><span className="sr-only sm:not-sr-only">Download</span>
           </button>
+          )}
           <button type="button" onClick={() => setPresenting(true)}
             className="btn btn-primary">
-            <PlayIcon /><span className="sm:hidden">Presentasi</span><span className="hidden sm:inline">Mulai presentasi</span>
+            <PlayIcon /><span className="sm:hidden">Lihat</span><span className="hidden sm:inline">Lihat Presentasi</span>
           </button>
           <button type="button" className={TOP_BTN} onClick={leave} title="Keluar dari akun">
             <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg><span className="sr-only sm:not-sr-only">Keluar</span>
@@ -1412,7 +1424,7 @@ function LoginScreen({ onLogin, notice, notify }) {
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState(notice || '');
-  useEffect(() => { salesNames().then((n) => setNames(Array.isArray(n) ? n : [])).catch(() => setNames([])); }, []);
+  useEffect(() => { salesNames().then((n) => setNames(Array.isArray(n) ? n.filter((x) => !ADMIN_USERS[adminKey(x)]) : [])).catch(() => setNames([])); }, []);
   const submit = async (e) => {
     e.preventDefault();
     setErr('');
@@ -1426,8 +1438,8 @@ function LoginScreen({ onLogin, notice, notify }) {
         salesLog(name, pass.trim(), 'masuk');
         onLogin({ role: 'sales', name, pass: pass.trim() }, d);
       } else {
-        if (!email.trim() || !pass) throw new Error('Isi email dan password');
-        const sess = await adminLogin(email.trim(), pass);
+        if (!email.trim() || !pass) throw new Error('Isi username dan password');
+        const sess = await adminLogin(email, pass);
         onLogin(sess, null);
       }
     } catch (ex) { const m = ex.message || 'Gagal masuk. Coba lagi.'; setErr(m); notify('Gagal masuk: ' + m, 'err'); setBusy(false); }
@@ -1448,8 +1460,8 @@ function LoginScreen({ onLogin, notice, notify }) {
           <div><label className="lbl" htmlFor="l-name">Nama sales</label>
             <Select id="l-name" value={name} onChange={setName} placeholder={names === null ? 'Memuat daftar…' : names.length ? 'Pilih nama' : 'Daftar belum tersedia'} options={(names || []).map((n) => ({ key: n, label: n }))} /></div>
         ) : (
-          <div><label className="lbl" htmlFor="l-email">Email</label>
-            <input id="l-email" className="field" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div><label className="lbl" htmlFor="l-email">Username</label>
+            <input id="l-email" className="field" type="text" placeholder="Toni" autoCapitalize="none" autoCorrect="off" spellCheck={false} autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
         )}
         <div><label className="lbl" htmlFor="l-pass">Password</label>
           <div className="relative">
