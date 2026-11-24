@@ -49,7 +49,7 @@ const periodOf = (deck) => (deck.cover.period != null ? deck.cover.period : rang
 const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penjualan · ${rangeText(deck)}`);
 
 const mkBrand = (name) => ({ id: uid(), name });
-const mkSales = (name) => ({ id: uid(), name, brands: [mkBrand('Brand A'), mkBrand('Brand B'), mkBrand('Brand C')], data: {}, note: '' });
+const mkSales = (name) => ({ id: uid(), name, brands: [mkBrand('BRAND A'), mkBrand('BRAND B'), mkBrand('BRAND C')], data: {}, note: '' });
 const cellOf = (sales, key, bid) => (sales.data && sales.data[key] && sales.data[key][bid]) || { total: '', target: '' };
 function statsOf(sales, key, bid, keys) {
   const c = cellOf(sales, key, bid);
@@ -72,7 +72,12 @@ const DEFAULT = {
 };
 
 /* Mengubah data versi lama (3 kolom bulan berupa teks, angka per produk) ke bentuk baru. */
+/* Nama brand selalu huruf besar semua */
 function migrate(d) {
+  const r = migrateRaw(d);
+  return r && { ...r, sales: r.sales.map((x) => ({ ...x, brands: (x.brands || []).map((b) => ({ ...b, name: String(b.name || '').toUpperCase() })) })) };
+}
+function migrateRaw(d) {
   if (!d || !Array.isArray(d.sales) || !d.cover || !d.closing) return null;
   if (d.version === 3 && d.range && d.range.from && d.range.to) return d.slideTheme === 'navy' ? { ...d, slideTheme: 'langit' } : d;
   const names = Array.isArray(d.months) ? d.months : [];
@@ -708,7 +713,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 </div>
               );
             })}
-            <button className="btn" disabled={ro} onClick={() => api.addBrand(s.id)}>+ Brand</button>
+            <button className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>
             <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea disabled={ro} id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
 
             <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
@@ -1173,9 +1178,9 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
-    setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name } : x)) })),
+    setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name: name.toUpperCase() } : x)) })),
     setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p } } } })),
-    addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('Brand ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
+    addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('BRAND ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
     delBrand: (sid, bid) => mapSales(sid, (s) => {
       if (s.brands.length <= 1) return s;
       const data = {};
