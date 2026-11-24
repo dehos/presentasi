@@ -297,9 +297,9 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
                   );
                 })}
               </div>
-            ) : keys.map((k, i) => (
+            ) : keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
               <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
-                style={{ display: 'flex', alignItems: 'center', gap: 5, height: rowH, fontSize: fs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: 5, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                 <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
                 <span style={{ width: 44, flex: 'none', textAlign: 'right' }}><Pct small v={st[i].pct} sem={sem} muted={T.muted} /></span>
@@ -369,9 +369,9 @@ function SalesSlide({ sales, deck, n, total, pick }) {
                   {keys.map((k) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center' }}>{short(k)}</div>)}
                 </div>
                 <div style={{ marginTop: 10 }}>
-                  {keys.map((k, i) => (
+                  {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
                     <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
-                      style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                       <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                       <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : compact ? fmtCompact(st[i].total) : rp(st[i].total)}</span>
                       <span style={{ width: compact ? 54 : 64, flex: 'none', textAlign: 'right' }}><Pct v={st[i].pct} sem={sem} muted={T.muted} /></span>
@@ -938,6 +938,33 @@ function OrderModal({ deck, onReorder, onClose }) {
   );
 }
 
+/* Rentang bulan: hanya admin. Perubahan langsung dipakai semua slide sales, ringkasan, dan export. */
+function RangeModal({ deck, api, onClose }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape' && !document.querySelector('[role="listbox"]')) { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  const keys = monthsOf(deck);
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Rentang bulan" className="w-full max-w-sm rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+          <div><h2 className="head m-0 text-base font-semibold">Rentang bulan</h2><p className="m-0 text-xs text-[var(--muted)]">Berlaku untuk semua slide sales (maksimal {MAX_BULAN} bulan)</p></div>
+          <button type="button" className="btn" onClick={onClose} autoFocus>Selesai</button>
+        </div>
+        <div className="grid grid-cols-[auto_1fr] items-center gap-3 p-5">
+          <label className="lbl" style={{ margin: 0 }} htmlFor="rm-from">Dari</label>
+          <Select id="rm-from" value={deck.range.from} onChange={(v) => api.setRange('from', v)} options={MONTH_OPTIONS} />
+          <label className="lbl" style={{ margin: 0 }} htmlFor="rm-to">Sampai</label>
+          <Select id="rm-to" value={keys[keys.length - 1]} onChange={(v) => api.setRange('to', v)} options={MONTH_OPTIONS} />
+        </div>
+        <div className="border-t border-[var(--line)] px-5 py-3 text-sm text-[var(--muted)]">{keys.length} bulan: {rangeText(deck)}</div>
+      </div>
+    </div>
+  );
+}
+
 function Toast({ toast }) {
   if (!toast) return null;
   return (
@@ -1034,6 +1061,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const [dlg, setDlg] = useState(null);
   const [showAct, setShowAct] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
+  const [showRange, setShowRange] = useState(false);
   const [exporting, setExporting] = useState(null);
   const doExport = async () => {
     if (exporting) return;
@@ -1269,6 +1297,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
             ))}
           </Menu>}
           {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
+            <MenuItem title="Rentang bulan" hint={`${rangeText(deck)} · berlaku untuk semua slide`} onClick={() => setShowRange(true)} />
             <MenuItem title="Atur urutan sales" hint="Ubah urutan slide sales dengan seret atau panah" onClick={() => setShowOrder(true)} />
             <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
             <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
@@ -1338,6 +1367,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </div>
         </div>
       )}
+      {showRange && <RangeModal deck={deck} api={api} onClose={() => setShowRange(false)} />}
       {showOrder && <OrderModal deck={deck} onReorder={reorderSales} onClose={() => setShowOrder(false)} />}
       {showAct && <ActivityModal deck={deck} getToken={getToken} onClose={() => setShowAct(false)} />}
     </div>

@@ -21,6 +21,9 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Slide otomatis beralih ke tampilan padat bila brand banyak (5 ke atas); sampai sekitar 24 brand tetap terbaca. Di tampilan paling padat, tiap bulan hanya menampilkan persen capaian dan naik/turun
 - Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`); admin memakai cadangan di browser (localStorage)
 
+- Di tabel angka tiap brand, bulan terbaru berada di baris paling atas (bar grafik tetap urut dari bulan awal ke akhir)
+- Admin: menu Data → **Rentang bulan** mengubah rentang yang langsung dipakai semua slide sales, ringkasan, dan export
+
 ## Export PPTX
 
 Tombol **Export PPTX** di header membuat file `.pptx` berisi semua slide (sampul, tiap sales, penutup) sebagai **objek asli PowerPoint**: teks, kotak kartu, bar grafik, garis target, label persen, bola 3D (bentuk bergradasi) dan logo, semuanya bisa diedit. Posisi dan gaya dibaca dari hasil render web (`pptx-export.js`), jadi tampilannya mengikuti web. Font Inter dan Space Grotesk perlu terpasang di komputer agar tampilan identik.
