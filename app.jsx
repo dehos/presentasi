@@ -852,63 +852,85 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
         const s = item.sales;
         const keys = monthsOf(deck);
         const ck = keys.includes(mk) ? mk : keys[0];
+        const mName = BULAN[parseKey(ck).m];
+        const multiYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
         return (
           <>
-            <div className="flex items-end gap-2">
-              <div className="min-w-0 flex-1"><label className="lbl" htmlFor="s-name">Nama sales</label><input disabled={ro || !adm} id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
-              <div className="w-[7.25rem] shrink-0">
-                <label className="lbl" htmlFor="s-month">Bulan</label>
-                <Select id="s-month" value={ck} onChange={setMk} options={keys.map((k) => ({ key: k, label: BULAN[parseKey(k).m] }))} />
-              </div>
-            </div>
+            <div className="-mt-2 text-sm text-[var(--muted)]">Slide <b className="text-[var(--fg)]">{s.name || 'tanpa nama'}</b></div>
 
-            <div className="head font-semibold">{BULAN[parseKey(ck).m]} {parseKey(ck).y}</div>
-            {s.brands.map((b, bi) => {
-              const c = cellOf(s, ck, b.id);
-              const st = statsOf(s, ck, b.id, keys);
-              return (
-                <div key={b.id} style={tintOf(bi)} className="rounded-lg border p-2 flex flex-col gap-2">
-                  <div className="flex gap-2">
-                    <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
-                    <button className="btn btn-danger" aria-label={`Hapus data ${b.name} ${BULAN[parseKey(ck).m]}`} title={`Hapus angka ${BULAN[parseKey(ck).m]} saja`} disabled={ro || (!c.total && !c.target)}
-                      onClick={() => ask({ title: `Hapus data ${b.name || 'brand ini'}?`, body: `Total dan target ${BULAN[parseKey(ck).m]} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dihapus. Bulan lain dan brand tetap.`, confirm: 'Hapus data bulan ini', onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Hapus</button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
-                      <input disabled={ro} id={`v-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.total)} onChange={(e) => api.setCell(s.id, ck, b.id, { total: digits(e.target.value) })} />
+            <section className="flex flex-col gap-2" aria-labelledby="sec-bulan">
+              <h3 id="sec-bulan" className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">1. Pilih bulan</h3>
+              <div role="radiogroup" aria-label="Bulan" className="flex flex-wrap gap-1.5">
+                {keys.map((k) => (
+                  <button key={k} type="button" role="radio" aria-checked={k === ck} onClick={() => setMk(k)}
+                    className={'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ' + (k === ck ? 'border-[#101828] bg-[#101828] text-white' : 'border-[var(--line)] bg-white text-[var(--fg)] hover:bg-[var(--soft)]')}>
+                    {BULAN_PENDEK[parseKey(k).m]}{multiYear ? ' ' + String(parseKey(k).y).slice(2) : ''}
+                  </button>
+                ))}
+              </div>
+            </section>
+
+            <section className="flex flex-col gap-2" aria-labelledby="sec-angka">
+              <h3 id="sec-angka" className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">2. Angka {mName} {parseKey(ck).y}</h3>
+              {s.brands.map((b, bi) => {
+                const c = cellOf(s, ck, b.id);
+                const st = statsOf(s, ck, b.id, keys);
+                const pct = st.pct == null ? null : Math.round(st.pct);
+                return (
+                  <div key={b.id} style={tintOf(bi)} className="rounded-xl border p-3 flex flex-col gap-3">
+                    <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field font-semibold" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
+                        <input disabled={ro} id={`v-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.total)} onChange={(e) => api.setCell(s.id, ck, b.id, { total: digits(e.target.value) })} />
+                      </div>
+                      <div>
+                        <label className="lbl" htmlFor={`t-${b.id}-${ck}`}>Target</label>
+                        <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
+                      </div>
                     </div>
-                    <div>
-                      <label className="lbl" htmlFor={`t-${b.id}-${ck}`}>Target</label>
-                      <input disabled={ro} id={`t-${b.id}-${ck}`} className="field" inputMode="numeric" placeholder="Rp 0" value={rp(c.target)} onChange={(e) => api.setCell(s.id, ck, b.id, { target: digits(e.target.value) })} />
+                    <div className="flex items-center gap-2 text-xs text-[var(--muted)]" aria-live="polite">
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/10"><span className="block h-full rounded-full bg-[#101828]" style={{ width: Math.min(100, pct || 0) + '%' }} /></span>
+                      <span className="w-40 shrink-0 text-right">{pct != null ? `Capaian ${pct}% dari target` : 'Isi total dan target'}</span>
                     </div>
+                    {!ro && (
+                      <div className="flex items-center justify-between gap-2 border-t border-black/10 pt-2">
+                        <button type="button" className="rounded-md px-2 py-1 text-xs font-medium text-[var(--fg)] hover:bg-black/5 disabled:opacity-40" disabled={!c.total && !c.target}
+                          onClick={() => ask({ title: `Kosongkan angka ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dikosongkan. Bulan lain dan brand tetap.`, confirm: `Kosongkan ${mName}`, onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Kosongkan {BULAN_PENDEK[parseKey(ck).m]}</button>
+                        <button type="button" className="rounded-md px-2 py-1 text-xs font-medium text-[var(--danger)] hover:bg-red-50 disabled:opacity-40" disabled={s.brands.length === 1}
+                          onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="text-xs text-[var(--muted)]">{st.pct != null ? `Capaian ${Math.round(st.pct)}% dari target` : ''}</div>
-                    <button type="button" className="text-xs font-medium text-[var(--danger)] disabled:opacity-40" disabled={ro || s.brands.length === 1}
-                      onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
-                  </div>
+                );
+              })}
+              <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>{!ro ? <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button> : <span />}</div>
+            </section>
+
+            <section className="flex flex-col gap-2 border-t border-[var(--line)] pt-3" aria-labelledby="sec-cat">
+              <h3 id="sec-cat" className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">3. Catatan slide</h3>
+              <textarea disabled={ro} id="s-note" aria-label="Catatan" rows={3} className="field" placeholder="Tulis catatan yang tampil di slide" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} />
+            </section>
+
+            {adm && (
+              <section className="flex flex-col gap-2 rounded-xl border border-dashed border-[var(--line)] p-3" aria-labelledby="sec-adm">
+                <h3 id="sec-adm" className="m-0 text-xs font-semibold uppercase tracking-wide text-[var(--muted)]">Pengaturan admin</h3>
+                <div><label className="lbl" htmlFor="s-name">Nama sales</label><input id="s-name" className="field" value={s.name} onChange={(e) => api.setSales(s.id, { name: e.target.value })} /></div>
+                <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
+                <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
+                  <label className="lbl" style={{ margin: 0 }} htmlFor="r-from">Dari</label>
+                  <Select id="r-from" value={deck.range.from} onChange={(v) => api.setRange('from', v)} options={MONTH_OPTIONS} />
+                  <label className="lbl" style={{ margin: 0 }} htmlFor="r-to">Sampai</label>
+                  <Select id="r-to" value={keys[keys.length - 1]} onChange={(v) => api.setRange('to', v)} options={MONTH_OPTIONS} />
                 </div>
-              );
-            })}
-            <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>{!ro ? <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button> : <span />}</div>
-            <div><label className="lbl" htmlFor="s-note">Catatan</label><textarea disabled={ro} id="s-note" rows={3} className="field" value={s.note} onChange={(e) => api.setSales(s.id, { note: e.target.value })} /></div>
-
-            <div className="border-t border-[var(--line)] pt-3 flex flex-col gap-2">
-              <div className="text-xs text-[var(--muted)]">Berlaku untuk semua slide sales (maksimal {MAX_BULAN} bulan)</div>
-              <div className="grid grid-cols-[auto_1fr] gap-2 items-center">
-                <label className="lbl" style={{ margin: 0 }} htmlFor="r-from">Dari</label>
-                <Select id="r-from" disabled={ro || !adm} value={deck.range.from} onChange={(v) => api.setRange('from', v)} options={MONTH_OPTIONS} />
-                <label className="lbl" style={{ margin: 0 }} htmlFor="r-to">Sampai</label>
-                <Select id="r-to" disabled={ro || !adm} value={keys[keys.length - 1]} onChange={(v) => api.setRange('to', v)} options={MONTH_OPTIONS} />
-              </div>
-              <div><label className="lbl" htmlFor="g-sub">Keterangan di bawah nama</label><input disabled={ro || !adm} id="g-sub" className="field" value={sublineOf(deck)} onChange={(e) => api.setSubline(e.target.value)} /></div>
-            </div>
-            {adm && <div className="grid grid-cols-3 gap-2">
-              <button className="btn" onClick={() => onMove(-1)} disabled={idx <= 1}>Naik</button>
-              <button className="btn" onClick={() => onMove(1)} disabled={idx >= deck.sales.length}>Turun</button>
-              <button className="btn btn-danger" onClick={onDelete} disabled={deck.sales.length === 1}>Hapus</button>
-            </div>}
+                <div className="text-[11px] text-[var(--muted)]">Rentang bulan berlaku untuk semua slide sales (maksimal {MAX_BULAN} bulan).</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button className="btn" onClick={() => onMove(-1)} disabled={idx <= 1}>Naik</button>
+                  <button className="btn" onClick={() => onMove(1)} disabled={idx >= deck.sales.length}>Turun</button>
+                  <button className="btn btn-danger" onClick={onDelete} disabled={deck.sales.length === 1}>Hapus</button>
+                </div>
+              </section>
+            )}
           </>
         );
       })()}
