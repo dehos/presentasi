@@ -1,7 +1,7 @@
 /* Tampilan aplikasi: tema putih. Tema slide dipilih di aplikasi dan didefinisikan di app.jsx (SLIDE_THEMES). */
 :root {
-  --bg: #eef3fb; --panel: rgba(255,255,255,.58); --line: rgba(110,130,175,.28); --fg: #0f1a2e; --muted: #536079;
-  --accent: #1478f0; --accent-fg: #ffffff; --soft: rgba(70,130,235,.13); --danger: #c0372b;
+  --bg: #f5f6f8; --panel: #ffffff; --line: #e1e4ea; --fg: #101828; --muted: #667085;
+  --accent: #1478f0; --accent-fg: #ffffff; --soft: #f0f2f5; --danger: #c0372b;
   color-scheme: light;
 }
 
@@ -22,13 +22,6 @@ body {
 #root { height: 100%; }
 .head { font-family: var(--font-head); }
 
-.btn { border: 1px solid var(--line); background: var(--panel); color: var(--fg); border-radius: 8px; padding: 7px 12px; font-weight: 500; cursor: pointer; font-family: inherit; font-size: inherit; box-shadow: 0 1px 2px rgba(15,23,42,.06); transition: background .15s, transform .1s; }
-.btn:active:not(:disabled) { transform: scale(.98); }
-.btn:hover { background: var(--soft); }
-.btn-primary { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
-.btn-primary:hover { background: var(--accent); filter: brightness(1.1); }
-.btn-danger { color: var(--danger); }
-.btn:disabled { opacity: .4; cursor: default; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .field { width: 100%; border: 1px solid var(--line); background: var(--bg); color: var(--fg); border-radius: 6px; padding: 6px 8px; font: inherit; min-width: 0; }
@@ -51,49 +44,34 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .toast-in { animation: toastIn .2s ease-out; }
 @media (prefers-reduced-motion: reduce) { .toast-in { animation: none; } }
 
-/* ===== Kaca dan 3D (ringan) ===== */
-body { background: #eef3fb; }
-.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none;
-  background:
-    radial-gradient(48rem 32rem at 6% -6%, #cfe5ff 0, transparent 62%),
-    radial-gradient(44rem 34rem at 100% 2%, #e9ddff 0, transparent 58%),
-    radial-gradient(44rem 32rem at 88% 106%, #c6f3e6 0, transparent 58%),
-    #eef3fb; }
-.orb { position: absolute; border-radius: 50%; opacity: .55;
-  background: radial-gradient(circle at 30% 26%, rgba(255,255,255,.9) 0, rgba(255,255,255,0) 22%), radial-gradient(circle at 36% 32%, var(--o1), var(--o2) 65%, var(--o3));
-  box-shadow: inset -10px -14px 24px rgba(20,30,90,.18); }
-.orb-a { --o1: #8cc4ff; --o2: #4f8cf5; --o3: #3a5fd4; width: 16rem; height: 16rem; left: -8rem; top: 22%; }
-.orb-b { --o1: #d2b8ff; --o2: #9c7cf0; --o3: #6f4bd6; width: 11rem; height: 11rem; right: 6%; top: -3rem; }
-.orb-c { --o1: #9af0d6; --o2: #3fc9a4; --o3: #1c9a7c; width: 13rem; height: 13rem; right: -3rem; bottom: 6%; }
-@media (max-width: 640px) { .orb-a { width: 10rem; height: 10rem; } .orb-b { width: 7rem; height: 7rem; } .orb-c { width: 8rem; height: 8rem; } }
+/* ===== Tampilan ringan: netral, tanpa blur, bayangan tipis dipertahankan ===== */
+body { background: var(--bg); }
+.backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); }
 
-/* panel kaca: satu lapis blur ringan dan bayangan tipis */
-.bg-\[var\(--panel\)\] { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 1px 3px rgba(30,50,110,.1); }
-.glass-card { background: linear-gradient(160deg, rgba(255,255,255,.82), rgba(255,255,255,.55)); border: 1px solid rgba(255,255,255,.85); border-radius: 20px;
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: inset 0 1px 0 #fff, 0 12px 28px -14px rgba(30,50,120,.35); }
-.pop-glass { background: rgba(255,255,255,.95); border: 1px solid rgba(120,140,185,.25); border-radius: 12px; box-shadow: 0 10px 24px -10px rgba(30,50,120,.4); }
-.logo-orb { width: 44px; height: 44px; flex: none; border-radius: 50%;
-  background: radial-gradient(circle at 30% 26%, #fff 0, rgba(255,255,255,0) 26%), radial-gradient(circle at 38% 34%, #7db8ff, #3b6fe8 60%, #2a3fb5);
-  box-shadow: inset -5px -7px 12px rgba(15,25,90,.3); }
-.seg { background: rgba(80,110,170,.12); border-radius: 12px; }
-.seg-on { background: #fff; color: var(--fg); box-shadow: 0 1px 2px rgba(30,50,110,.25); }
+/* panel: putih, garis tipis, bayangan lembut */
+.bg-\[var\(--panel\)\] { box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 4px 12px -6px rgba(16,24,40,.12); }
+.glass-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 1px 2px rgba(16,24,40,.06), 0 16px 32px -16px rgba(16,24,40,.22); }
+.pop-glass { background: #fff; border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 10px 24px -10px rgba(16,24,40,.3); }
+.logo-orb { width: 44px; height: 44px; flex: none; border-radius: 50%; background: #1478f0; }
+.seg { background: #eceef2; border-radius: 10px; }
+.seg-on { background: #fff; color: var(--fg); box-shadow: 0 1px 2px rgba(16,24,40,.18); }
 
-/* tombol: gradasi halus, tanpa bayangan besar */
-.btn { background: linear-gradient(180deg, #fff, #f0f4fb); border-color: rgba(120,140,185,.4); box-shadow: 0 1px 1px rgba(30,50,110,.12); }
-.btn:hover { background: linear-gradient(180deg, #fff, #e4eefc); }
+/* tombol: kapsul datar bergaris tipis; utama berwarna tinta gelap (bukan biru bawaan framework) */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: 1px solid #d5d9e1; background: #fff; color: var(--fg); border-radius: 999px; padding: 7px 16px; font-weight: 500; letter-spacing: -.005em; cursor: pointer; font-family: inherit; font-size: inherit; line-height: 1.25; box-shadow: 0 1px 2px rgba(16,24,40,.07); transition: background .12s, border-color .12s, box-shadow .12s, transform .08s; }
+.btn:hover:not(:disabled) { background: #f3f4f7; border-color: #c3c8d2; }
 .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
-.btn-primary { background: linear-gradient(180deg, #3d92ff, #1478f0 60%, #0f66d6); border-color: #0f62d0; color: #fff; box-shadow: inset 0 1px 0 rgba(255,255,255,.35), 0 1px 2px rgba(15,98,208,.4); }
-.btn-primary:hover { background: linear-gradient(180deg, #4d9cff, #2282f3 60%, #1469dd); }
-.btn-primary:disabled { opacity: .6; }
-/* tetap pertahankan warna biru; gloss hanya lapisan tambahan */
-.btn-gloss, .btn-gloss:hover { background: linear-gradient(180deg, rgba(255,255,255,.28), rgba(255,255,255,0) 50%), linear-gradient(180deg, #3d92ff, #1478f0 60%, #0f66d6); color: #fff; }
+.btn-primary { background: #101828; border-color: #101828; color: #fff; box-shadow: 0 1px 2px rgba(16,24,40,.25), 0 4px 10px -4px rgba(16,24,40,.4); }
+.btn-primary:hover:not(:disabled) { background: #263149; border-color: #263149; }
+.btn-primary:disabled { opacity: .55; }
+.btn-gloss, .btn-gloss:hover { color: #fff; }
+.btn-danger { color: var(--danger); border-color: #efd2cf; }
+.btn-danger:hover:not(:disabled) { background: #fdf1f0; border-color: #e3b5b0; }
+.btn:disabled { opacity: .4; cursor: default; box-shadow: none; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 2px solid #101828; outline-offset: 2px; }
 
-.field { background: rgba(255,255,255,.8); border-color: rgba(120,140,185,.4); }
-.field:focus { background: #fff; }
-.field:disabled { opacity: .6; cursor: not-allowed; }
-@supports not (backdrop-filter: blur(1px)) { :root { --panel: rgba(255,255,255,.92); } }
+.field { background: #fff; border-color: #d5d9e1; border-radius: 8px; }
+.field:focus { border-color: #101828; }
+.field:disabled { opacity: .6; cursor: not-allowed; background: #f3f4f7; }
 
-.logo-glow { position: relative; display: inline-flex; flex: none; align-items: center; justify-content: center; width: 72px; height: 56px; }
-.logo-glow::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; background: radial-gradient(circle, rgba(255,190,40,.45), rgba(255,190,40,0) 68%); }
-.logo-glow img { position: relative; width: 64px; height: auto; filter: drop-shadow(0 3px 5px rgba(180,110,0,.3)); }
-.orb-b { --o1: #ffe08a !important; --o2: #ffb81c !important; --o3: #e08a00 !important; }
+.logo-glow { display: inline-flex; flex: none; align-items: center; justify-content: center; width: 72px; height: 56px; }
+.logo-glow img { width: 64px; height: auto; }

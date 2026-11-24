@@ -645,8 +645,6 @@ function Select({ id, value, options, onChange, disabled, placeholder, className
   );
 }
 
-const BRAND_TINTS = ['70,130,240', '30,190,160', '255,170,30', '150,110,240', '240,100,140', '90,190,90', '250,130,60', '40,170,220'];
-const tintOf = (i) => { const c = BRAND_TINTS[i % BRAND_TINTS.length]; return { background: `linear-gradient(145deg, rgba(${c},0.26), rgba(255,255,255,0.55))`, borderColor: `rgba(${c},0.5)`, boxShadow: `inset 0 1px 0 rgba(255,255,255,0.8), inset 3px 0 0 rgba(${c},0.85)`, backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }; };
 
 function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSave, ask, perm }) {
   const ro = !perm.edit, adm = perm.admin;
@@ -1326,7 +1324,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
             <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v12m0 0l-4.5-4.5M12 15l4.5-4.5M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2" /></svg><span className="sr-only sm:not-sr-only">Export PPTX</span>
           </button>
           <button type="button" onClick={() => setPresenting(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white shadow-sm transition hover:brightness-110 active:scale-[.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
+            className="btn btn-primary">
             <PlayIcon /><span className="sm:hidden">Presentasi</span><span className="hidden sm:inline">Mulai presentasi</span>
           </button>
           <button type="button" className={TOP_BTN} onClick={leave} title="Keluar dari akun">
@@ -1389,12 +1387,13 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   );
 }
 
+/* Kartu isi data: belang zebra, baris genap abu-abu dan baris ganjil putih */
+const tintOf = (i) => ({ background: i % 2 ? '#f1f2f5' : '#ffffff', borderColor: '#e1e4ea', boxShadow: '0 1px 2px rgba(16,24,40,.06)' });
 
-/* Latar belakang: gradasi lembut dan bola 3D mengambang di belakang kaca */
+/* Latar belakang polos (tanpa bola) */
 function Backdrop() {
   return (
     <div aria-hidden="true" className="backdrop">
-      <span className="orb orb-a" /><span className="orb orb-b" /><span className="orb orb-c" />
     </div>
   );
 }
