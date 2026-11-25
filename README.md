@@ -83,3 +83,8 @@ Tambahkan satu entri di `SLIDE_THEMES` pada `app.jsx` dengan kunci warna yang sa
 ## Database
 
 Isi deck disimpan sebagai satu baris JSON di tabel `public.lp_deck` (id `utama`) pada Supabase. Aplikasi membaca saat dibuka dan menyimpan otomatis sekitar 1 detik setelah perubahan. Tabel hanya bisa diakses admin yang login; sales lewat fungsi database yang memeriksa password. Jika koneksi gagal, aplikasi menampilkan peringatan dan tidak menimpa data di database.
+
+## Catatan performa
+Halaman memuat `app.js` (hasil kompilasi `app.jsx`, sudah diperkecil) sehingga tidak perlu Babel di browser.
+`app.jsx` tetap menjadi sumber; setelah mengubahnya, buat ulang `app.js` dengan esbuild
+(`esbuild app.jsx --outfile=app.js --minify --target=es2019 --format=iife --loader:.jsx=jsx`).
