@@ -284,5 +284,43 @@
     return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
   }
 
-  window.DhouseExport = { convert, patchOrbs, patchGrads };
+  /* Sematkan font (Inter, Manrope, Montserrat, Space Grotesk) ke PPTX supaya tampil sama di PowerPoint tanpa instal font */
+  const FONT_SLUG = { Inter: 'inter', Manrope: 'manrope', Montserrat: 'montserrat', 'Space Grotesk': 'space-grotesk' };
+  async function embedFonts(buf, JSZipLib, base) {
+    try {
+      const zip = await JSZipLib.loadAsync(buf);
+      const used = new Set();
+      for (const p of Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))) {
+        const xml = await zip.file(p).async('string');
+        (xml.match(/typeface="[^"]+"/g) || []).forEach((m) => used.add(m.slice(10, -1)));
+      }
+      const fams = [...used].filter((f) => FONT_SLUG[f]);
+      if (!fams.length) return buf;
+      let rels = await zip.file('ppt/_rels/presentation.xml.rels').async('string');
+      let ct = await zip.file('[Content_Types].xml').async('string');
+      let pres = await zip.file('ppt/presentation.xml').async('string');
+      let list = '', n = 0;
+      for (const fam of fams) {
+        const parts = {};
+        for (const st of ['regular', 'bold']) {
+          const r = await fetch(`${base}fonts/${FONT_SLUG[fam]}-${st}.fntdata`);
+          if (!r.ok) continue;
+          n++; const id = `rIdFont${n}`;
+          zip.file(`ppt/fonts/font${n}.fntdata`, await r.arrayBuffer());
+          rels = rels.replace('</Relationships>', `<Relationship Id="${id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/font" Target="fonts/font${n}.fntdata"/></Relationships>`);
+          parts[st] = id;
+        }
+        if (parts.regular) list += `<p:embeddedFont><p:font typeface="${fam}"/><p:regular r:id="${parts.regular}"/>${parts.bold ? `<p:bold r:id="${parts.bold}"/>` : ''}</p:embeddedFont>`;
+      }
+      if (!list) return buf;
+      if (!/Extension="fntdata"/.test(ct)) ct = ct.replace('<Override', '<Default Extension="fntdata" ContentType="application/x-fontdata"/><Override');
+      const lst = `<p:embeddedFontLst>${list}</p:embeddedFontLst>`;
+      if (/<p:defaultTextStyle/.test(pres)) pres = pres.replace('<p:defaultTextStyle', lst + '<p:defaultTextStyle'); else pres = pres.replace('</p:presentation>', lst + '</p:presentation>');
+      if (!/embedTrueTypeFonts=/.test(pres)) pres = pres.replace('<p:presentation ', '<p:presentation embedTrueTypeFonts="1" ');
+      zip.file('ppt/presentation.xml', pres); zip.file('ppt/_rels/presentation.xml.rels', rels); zip.file('[Content_Types].xml', ct);
+      return zip.generateAsync({ type: 'arraybuffer', compression: 'DEFLATE' });
+    } catch (e) { console.warn('Font tidak disematkan', e); return buf; }
+  }
+
+  window.DhouseExport = { convert, patchOrbs, patchGrads, embedFonts };
 })();

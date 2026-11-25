@@ -342,22 +342,25 @@ function BrandName({ id, value, ro, onChange }) {
     </div>
   );
 }
-function MiniChart({ T, keys, st, bi, h, short, pick, bid, bname, w }) {
-  const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
-  const ghost = maxV === 0;
+/* Gelas ukur: tinggi gelas = 100% target, isi = capaian. Tanpa garis target terpisah */
+function Glass({ T, pct, h }) {
+  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct)), inner = h - 8;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: h, boxSizing: 'border-box', border: `2px solid ${T.axis}`, borderRadius: '6px 6px 14px 14px', background: 'rgba(128,128,128,0.08)', overflow: 'hidden' }}>
+      {p > 0 && <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2, height: Math.max(6, (inner * p) / 100), background: T.barFill || T.bars[1], borderRadius: '3px 3px 11px 11px' }} />}
+      {[25, 50, 75].map((q) => <div key={q} style={{ position: 'absolute', left: 0, width: q === 50 ? '34%' : '22%', bottom: 2 + (inner * q) / 100, height: 0, borderTop: `1.5px solid ${T.axis}` }} />)}
+    </div>
+  );
+}
+function MiniChart({ T, keys, st, h, short, pick, bid, bname, w }) {
   return (
     <div style={{ width: w, flex: 'none' }}>
-      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: h, borderBottom: `2px solid ${T.axis}` }}>
-        {st.map((x, i) => {
-          const bh = ghost ? GHOST[(bi * 3 + i) % 9] * h * 0.8 : ((x.total || 0) / maxV) * (h - 6);
-          const th = !ghost && x.target ? (x.target / maxV) * (h - 6) : null;
-          return (
-            <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${bid}-${keys[i]}` }} label={`Isi ${bname} ${BULAN[parseKey(keys[i]).m]}`} style={{ position: 'relative', flex: 1, minWidth: 0, height: h, display: 'flex', alignItems: 'flex-end' }}>
-              <div style={{ width: '100%', height: bh, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
-              {th != null && <div style={{ position: 'absolute', left: -3, right: -3, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
-            </Hit>
-          );
-        })}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: h }}>
+        {st.map((x, i) => (
+          <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${bid}-${keys[i]}` }} label={`Isi ${bname} ${BULAN[parseKey(keys[i]).m]}`} style={{ flex: 1, minWidth: 0, height: h }}>
+            <Glass T={T} pct={x.pct} h={h} />
+          </Hit>
+        ))}
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 12, color: T.muted }}>
         {keys.map((k) => <div key={k} style={{ flex: 1, minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>{short(k)}</div>)}
@@ -410,7 +413,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
               </div>
             ) : (
               <div style={{ display: 'flex', gap: roomy ? 16 : 8, alignItems: 'flex-start' }}>
-                <MiniChart T={T} keys={keys} st={st} bi={bi} h={Math.max(52, rowH * keys.length - 18)} short={short} pick={pick} bid={b.id} bname={b.name} w={roomy ? 122 : 84} />
+                <MiniChart T={T} keys={keys} st={st} h={Math.max(52, rowH * keys.length - 18)} short={short} pick={pick} bid={b.id} bname={b.name} w={roomy ? 122 : 84} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                 {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
               <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
@@ -464,25 +467,18 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         <div style={{ display: 'flex', gap: 16 }}>
           {sales.brands.map((b, bi) => {
             const st = keys.map((k) => statsOf(sales, k, b.id, keys));
-            const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
-            const ghost = maxV === 0;
             return (
               <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
-                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
-                  {st.map((x, i) => {
-                    const h = ghost ? GHOST[(bi * 3 + i) % 9] * chartH * 0.8 : ((x.total || 0) / maxV) * (chartH - 10);
-                    const th = !ghost && x.target ? (x.target / maxV) * (chartH - 10) : null;
-                    return (
-                      <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
-                        style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
-                        <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
-                        {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
-                      </Hit>
-                    );
-                  })}
+                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH }}>
+                  {st.map((x, i) => (
+                    <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
+                      style={{ flex: 1, maxWidth: 76, height: chartH }}>
+                      <Glass T={T} pct={x.pct} h={chartH} />
+                    </Hit>
+                  ))}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6, fontSize: 15, color: T.muted }}>
                   {keys.map((k) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center' }}>{short(k)}</div>)}
@@ -508,7 +504,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         </div>
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
+          <span>Gelas penuh = 100% target</span>
           <span>% = capaian dari target</span>
           {!dense && <span>▲ ▼ = dibanding bulan sebelumnya</span>}
         </div>
@@ -641,7 +637,6 @@ function SummarySlide({ sales, deck, n, total, pick }) {
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   const S = summaryOf(sales, keys);
-  const maxV = Math.max(0, ...S.months.flatMap((m) => [m.total || 0, m.target || 0]));
   const chartH = 190;
   const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
   const best = S.ranked.slice(0, 3);
@@ -665,24 +660,19 @@ function SummarySlide({ sales, deck, n, total, pick }) {
       <div style={{ padding: '22px 48px 0', display: 'flex', gap: 16, alignItems: 'stretch' }}>
         <div data-m="card-0" style={{ ...card, flex: '0 0 560px', height: 480 }}>
           <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 12 }}>Total semua brand per bulan</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
-            {S.months.map((m, i) => {
-              const bh = maxV ? ((m.total || 0) / maxV) * (chartH - 6) : GHOST[i % 9] * chartH * 0.6;
-              const th = maxV && m.target ? (m.target / maxV) * (chartH - 6) : null;
-              return (
-                <div key={m.k} style={{ position: 'relative', flex: 1, maxWidth: 110, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
-                  <div style={{ width: '100%', height: bh, background: maxV ? (T.barFill || T.bars[1]) : 'transparent', border: maxV ? 'none' : `2px dashed ${T.axis}`, borderBottom: 'none', borderRadius: T.barR }} />
-                  {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
-                </div>
-              );
-            })}
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, height: chartH }}>
+            {S.months.map((m) => (
+              <div key={m.k} style={{ flex: 1, maxWidth: 110, height: chartH }}>
+                <Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} h={chartH} />
+              </div>
+            ))}
           </div>
           <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
             {S.months.map((m) => <div key={m.k} style={{ flex: 1, maxWidth: 110, textAlign: 'center', lineHeight: 1.3 }}>{short(m.k)}<div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{m.total == null ? '–' : fmtCompact(m.total)}</div></div>)}
           </div>
           <div style={{ display: 'flex', gap: 22, marginTop: 8, fontSize: 15, color: T.muted }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
+            <span>Gelas penuh = 100% target</span>
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
             {[['Total penjualan', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian target', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren bulan terakhir', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
@@ -720,8 +710,8 @@ function SummarySlide({ sales, deck, n, total, pick }) {
 const CANVAS_PER_PAGE = 4, CANVAS_MAX = 250;
 const BRANDS_PER_SLIDE = 6;
 const salesPages = (s) => {
-  const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE));
-  const pg = Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(p * BRANDS_PER_SLIDE, (p + 1) * BRANDS_PER_SLIDE) }));
+  const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE)), base = Math.floor(s.brands.length / n), rem = s.brands.length % n;
+  const pg = Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(Math.min(p, rem) * (base + 1) + Math.max(0, p - rem) * base, Math.min(p, rem) * (base + 1) + Math.max(0, p - rem) * base + base + (p < rem ? 1 : 0)) }));
   if (s.brands.length <= 2) return pg.map((x) => ({ ...x, combined: true }));
   return [...pg, { kind: 'sales', summary: true, sales: s, key: s.id + '-sum', page: n, pages: n, brands: [] }];
 };
@@ -1115,7 +1105,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                   </div>
                 );
               })}
-              {s.brands.length > BRANDS_PER_SLIDE && <p className="m-0 text-xs text-[var(--muted)]">{`Brand ke-${BRANDS_PER_SLIDE + 1} dan seterusnya tampil di slide berikutnya (${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide).`}</p>}
+              {s.brands.length > BRANDS_PER_SLIDE && <p className="m-0 text-xs text-[var(--muted)]">{`Brand dibagi rata ke ${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide.`}</p>}
               <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-gray-500 shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
               {!ro && <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button>}
             </section>
@@ -1465,7 +1455,7 @@ async function exportPptx(items, deck, api, onProgress) {
     sl.addNotes(slideNotes(items[i], deck));
   }
   onProgress(items.length, items.length);
-  const buf = await window.DhouseExport.patchGrads(await window.DhouseExport.patchOrbs(await pptx.write({ outputType: 'arraybuffer' }), ctx.orbs, window.JSZip), ctx.grads, window.JSZip);
+  const buf = await window.DhouseExport.embedFonts(await window.DhouseExport.patchGrads(await window.DhouseExport.patchOrbs(await pptx.write({ outputType: 'arraybuffer' }), ctx.orbs, window.JSZip), ctx.grads, window.JSZip), window.JSZip, new URL('.', location.href).href);
   const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob); a.download = `Presentasi-Dhouse-${new Date().toISOString().slice(0, 10)}.pptx`;
