@@ -40,7 +40,7 @@ Setiap objek bernama sama antar slide dengan awalan `!!` (`!!title`, `!!sub`, `!
 ## Logo, urutan, dan fokus sales
 
 - Logo perusahaan (`logo.png`) tampil di login, header web, sampul, penutup, dan header tiap slide sales; ikut berpindah posisi saat transisi Morph.
-- Slide sales: maksimal 6 brand per slide (kelebihannya di slide berikutnya), semua brand tampil dengan grafik batang + target. Setelah slide brand terakhir tiap sales ada slide **Kesimpulan** (total semua brand per bulan, capaian, tren, brand tertinggi dan perlu perhatian; hanya membandingkan brand di dalam satu sales)
+- Slide sales: maksimal 6 brand per slide (kelebihannya di slide berikutnya), semua brand tampil dengan grafik batang + target. Setelah slide brand terakhir tiap sales ada slide **Kesimpulan** (kalau sales hanya punya 1–2 brand, kesimpulan digabung di slide yang sama) (total semua brand per bulan, capaian, tren, brand tertinggi dan perlu perhatian; hanya membandingkan brand di dalam satu sales)
 - Bola 3D di latar slide acak per slide (di-seed dari id slide, jadi tetap sama di editor, presentasi, dan export).
 - Admin: menu Data → **Atur urutan sales** (seret baris atau tombol panah).
 - Sales: saat masuk langsung membuka slide miliknya (ditandai "Saya"), presentasi dimulai dari slide itu, dan tombol "Slide saya" kembali ke sana.

@@ -411,12 +411,12 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   );
 }
 
-function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
+function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined = false }) {
   const T = themeOf(deck);
   const sem = semOf(T);
   const keys = monthsOf(deck);
   const nb = sales.brands.length;
-  const compact = nb > 3;
+  const compact = nb > 3 || combined;
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
   const dense = nb >= 5 || (nb === 4 && crossYear);
   const chartH = keys.length <= 3 ? 215 : keys.length <= 4 ? 175 : 140;
@@ -439,6 +439,8 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
       </div>
 
       <div style={{ padding: '22px 48px 0' }}>
+        <div style={combined ? { display: 'flex', gap: 16, alignItems: 'stretch' } : undefined}>
+        <div style={combined ? { flex: '1 1 0', minWidth: 0 } : undefined}>
         {dense ? <DenseGrid sales={sales} keys={keys} T={T} sem={sem} pick={pick} short={short} labW={crossYear ? 52 : 32} /> : (
         <div style={{ display: 'flex', gap: 16 }}>
           {sales.brands.map((b, bi) => {
@@ -482,6 +484,9 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
           })}
         </div>
         )}
+        </div>
+        {combined && <CombinedSummary sales={sales} keys={keys} T={T} sem={sem} />}
+        </div>
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
@@ -565,16 +570,7 @@ function summaryOf(sales, keys) {
   const ranked = brands.filter((b) => b.pct != null).sort((a, b) => b.pct - a.pct);
   return { months, total, target, pct: target ? (total / target) * 100 : null, trend, last, prev, brands, ranked, any: filled.length > 0 };
 }
-function SummarySlide({ sales, deck, n, total, pick }) {
-  const T = themeOf(deck), sem = semOf(T), keys = monthsOf(deck);
-  const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
-  const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
-  const S = summaryOf(sales, keys);
-  const maxV = Math.max(0, ...S.months.flatMap((m) => [m.total || 0, m.target || 0]));
-  const chartH = 190;
-  const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
-  const best = S.ranked.slice(0, 3);
-  const low = S.ranked.length > 3 ? S.ranked.slice(-Math.min(3, S.ranked.length - 3)).reverse() : [];
+function summaryLines(S, best, low) {
   const lines = [];
   if (!S.any) lines.push('Belum ada data penjualan yang diisi.');
   else {
@@ -582,8 +578,10 @@ function SummarySlide({ sales, deck, n, total, pick }) {
     if (S.trend != null) lines.push(Math.abs(S.trend) < 0.05 ? `${BULAN[parseKey(S.last.k).m]} sama dengan ${BULAN[parseKey(S.prev.k).m]}.` : `${BULAN[parseKey(S.last.k).m]} ${S.trend > 0 ? 'naik' : 'turun'} ${fmt1(Math.abs(S.trend))}% dibanding ${BULAN[parseKey(S.prev.k).m]}.`);
     if (best[0]) lines.push(`Brand terbaik ${best[0].name} (${Math.round(best[0].pct)}%)` + (low[0] ? `, perlu perhatian ${low[0].name} (${Math.round(low[0].pct)}%).` : '.'));
   }
-  const card = { ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '18px 22px', boxSizing: 'border-box' };
-  const List = ({ title, rows, mk }) => (
+  return lines;
+}
+function SumList({ T, sem, title, rows, mk }) {
+  return (
     <div data-m={mk} style={{ marginTop: 10 }}>
       <div style={{ fontSize: 15, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
       {rows.map((b, i) => (
@@ -595,6 +593,38 @@ function SummarySlide({ sales, deck, n, total, pick }) {
       ))}
     </div>
   );
+}
+function CombinedSummary({ sales, keys, T, sem }) {
+  const S = summaryOf(sales, keys), pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
+  const lines = summaryLines(S, S.ranked.slice(0, 1), []);
+  return (
+    <div data-m="card-1" style={{ ...GLASS, ...blurOf(T), flex: '0 0 400px', boxSizing: 'border-box', background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 20px' }}>
+      <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 8 }}>Kesimpulan</div>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+        {[['Total', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
+          <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
+            <div style={{ fontSize: 13, color: T.muted }}>{l}</div>
+            <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, color: c, whiteSpace: 'nowrap' }}>{v}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ fontSize: 18, lineHeight: 1.4 }}>{lines.map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
+      {S.ranked.length > 0 && <SumList T={T} sem={sem} mk="sum-best" title="Capaian per brand" rows={S.ranked} />}
+    </div>
+  );
+}
+function SummarySlide({ sales, deck, n, total, pick }) {
+  const T = themeOf(deck), sem = semOf(T), keys = monthsOf(deck);
+  const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
+  const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
+  const S = summaryOf(sales, keys);
+  const maxV = Math.max(0, ...S.months.flatMap((m) => [m.total || 0, m.target || 0]));
+  const chartH = 190;
+  const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
+  const best = S.ranked.slice(0, 3);
+  const low = S.ranked.length > 3 ? S.ranked.slice(-Math.min(3, S.ranked.length - 3)).reverse() : [];
+  const lines = summaryLines(S, best, low);
+  const card = { ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '18px 22px', boxSizing: 'border-box' };
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="sales" seed={sales.id + 'k'} />
@@ -643,8 +673,8 @@ function SummarySlide({ sales, deck, n, total, pick }) {
         <div data-m="card-1" style={{ ...card, flex: 1, minWidth: 0, height: 480 }}>
           <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 10 }}>Kesimpulan</div>
           <div style={{ fontSize: 19, lineHeight: 1.4 }}>{lines.map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
-          {best.length > 0 && <List mk="sum-best" title="Capaian tertinggi" rows={best} />}
-          {low.length > 0 && <List mk="sum-low" title="Perlu perhatian" rows={low} />}
+          {best.length > 0 && <SumList T={T} sem={sem} mk="sum-best" title="Capaian tertinggi" rows={best} />}
+          {low.length > 0 && <SumList T={T} sem={sem} mk="sum-low" title="Perlu perhatian" rows={low} />}
         </div>
       </div>
 
@@ -669,6 +699,7 @@ const BRANDS_PER_SLIDE = 6;
 const salesPages = (s) => {
   const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE));
   const pg = Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(p * BRANDS_PER_SLIDE, (p + 1) * BRANDS_PER_SLIDE) }));
+  if (s.brands.length <= 2) return pg.map((x) => ({ ...x, combined: true }));
   return [...pg, { kind: 'sales', summary: true, sales: s, key: s.id + '-sum', page: n, pages: n, brands: [] }];
 };
 const itemIndexOf = (deck, sid) => { let i = 1; for (const x of deck.sales) { if (x.id === sid) return i; i += salesPages(x).length; } return 1; };
@@ -716,7 +747,7 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
   if (item.summary) return <SummarySlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
-  return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} deck={deck} n={n} total={total} pick={pick} />;
+  return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} combined={!!item.combined} deck={deck} n={n} total={total} pick={pick} />;
 }
 
 
