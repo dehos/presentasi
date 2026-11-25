@@ -41,7 +41,7 @@ Setiap objek bernama sama antar slide dengan awalan `!!` (`!!title`, `!!sub`, `!
 
 - Logo perusahaan (`logo.png`) tampil di login, header web, sampul, penutup, dan header tiap slide sales; ikut berpindah posisi saat transisi Morph.
 - Slide sales: maksimal 6 brand per slide (kelebihannya di slide berikutnya), semua brand tampil dengan grafik batang + target. Setelah slide brand terakhir tiap sales ada slide **Kesimpulan** (kalau sales hanya punya 1–2 brand, kesimpulan digabung di slide yang sama) (total semua brand per bulan, capaian, tren, brand tertinggi dan perlu perhatian; hanya membandingkan brand di dalam satu sales)
-- Grafik bulanan berbentuk gelas kaca terbuka transparan: tinggi tabung = 100% target, isi cairan = capaian bulan itu (tanpa garis ukur). Brand lebih dari 6 dibagi rata ke beberapa slide (10 brand = 5 + 5)
+- Grafik bulanan berbentuk gelas kaca kotak terbuka transparan: tinggi tabung = 100% target, isi cairan = capaian bulan itu (tanpa garis ukur). Brand lebih dari 6 dibagi rata ke beberapa slide (10 brand = 5 + 5)
 - Download PPTX menyematkan font (Inter, Manrope, Montserrat, Space Grotesk dari folder `fonts/`) supaya tampilan di PowerPoint sama dengan web; kalau PowerPoint (mis. versi Mac) tidak memakai font sematan, instal font tersebut
 - Bola 3D di latar slide acak per slide (di-seed dari id slide, jadi tetap sama di editor, presentasi, dan export).
 - Admin: menu Data → **Atur urutan sales** (seret baris atau tombol panah).

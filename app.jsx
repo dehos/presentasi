@@ -336,28 +336,27 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 /* Tabung kaca transparan: tinggi tabung = 100% target, isi cairan = capaian (tanpa garis ukur) */
 const isDarkT = (T) => { const m = /^#?([0-9a-f]{6})/i.exec(T.paper || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 110; };
 function Glass({ T, pct, h, total }) {
-  /* gelas terbuka: sisi + dasar membulat, bibir elips di atas; >100% = cairan membukit melewati bibir; tanpa target = permukaan bergelombang ~ */
+  /* gelas kotak terbuka di atas; >100% = cairan membukit melewati bibir; tanpa target = permukaan bergelombang ~ */
   const noTarget = pct == null && total > 0, over = pct != null && pct > 100;
   const p = noTarget ? 50 : pct == null ? 0 : Math.max(0, Math.min(100, pct)), dk = isDarkT(T);
   const w = (a) => `rgba(255,255,255,${a})`;
   const edge = dk ? w(0.4) : 'rgba(90,120,165,0.35)';
-  const fillH = p > 0 ? Math.max(8, ((h - 7) * p) / 100) : 0;
+  const fillH = p > 0 ? Math.max(8, ((h - 2) * p) / 100) : 0;
   const top = ((T.barFill || '').match(/#[0-9a-f]{6}/i) || [T.bars[1]])[0];
   const domeH = over ? 10 + Math.min(10, Math.round((pct - 100) * 0.3)) : 0;
   const N = 28;
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 5, bottom: 0, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: 'none', borderRadius: '0 0 18px 18px / 0 0 12px 12px', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)', overflow: 'hidden' }}>
-        {p > 0 && <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2, height: fillH - 5, background: T.barFill || T.bars[1], borderRadius: '0 0 15px 15px / 0 0 10px 10px', opacity: 0.93 }} />}
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: 'none', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)', overflow: 'hidden' }}>
+        {p > 0 && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: noTarget ? fillH - 8 : fillH, background: T.barFill || T.bars[1], opacity: 0.93 }} />}
         {noTarget && (
-          <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2 + fillH - 6, height: 14, display: 'flex', alignItems: 'flex-end', opacity: 0.93 }}>
-            {Array.from({ length: N }, (_, k) => <div key={k} style={{ flex: 1, height: Math.round(8 + 5 * Math.sin((2 * Math.PI * (k + 0.5)) / N)), borderRadius: '2px 2px 0 0', background: top }} />)}
+          <div style={{ position: 'absolute', left: 0, right: 0, bottom: fillH - 9, height: 14, display: 'flex', alignItems: 'flex-end', opacity: 0.93 }}>
+            {Array.from({ length: N }, (_, k) => <div key={k} style={{ flex: 1, height: Math.round(8 + 5 * Math.sin((2 * Math.PI * (k + 0.5)) / N)), background: top }} />)}
           </div>
         )}
-        <div style={{ position: 'absolute', top: 9, bottom: 9, left: 8, width: 6, borderRadius: 6, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />
+        <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 6, borderRadius: 6, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />
       </div>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 10, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderRadius: '50%', background: dk ? w(0.1) : w(0.45) }} />
-      {over && <div style={{ position: 'absolute', left: 2, right: 2, top: 7 - domeH, height: domeH, background: top, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', opacity: 0.95 }} />}
+      {over && <div style={{ position: 'absolute', left: 1, right: 1, top: -domeH, height: domeH, background: top, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', opacity: 0.95 }} />}
     </div>
   );
 }
@@ -513,7 +512,6 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         </div>
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
-          <span>Tabung penuh = 100% target</span>
           <span>% = capaian dari target</span>
           {!dense && <span>▲ ▼ = dibanding bulan sebelumnya</span>}
         </div>
@@ -681,7 +679,6 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           </div>
           <div style={{ display: 'flex', gap: 22, marginTop: 8, fontSize: 15, color: T.muted }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
-            <span>Tabung penuh = 100% target</span>
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
             {[['Total penjualan', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian target', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren bulan terakhir', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
