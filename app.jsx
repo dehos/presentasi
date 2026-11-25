@@ -301,6 +301,11 @@ function Pct({ v, sem, muted, small }) {
   return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: small ? '1px 5px' : '2px 10px', fontWeight: 600, fontSize: small ? '0.86em' : undefined }}>{Math.round(v)}%</span>;
 }
 /* Capaian target: angka persen dengan bar progres tipis di bawahnya (penuh = 100% target; warna mengikuti ambang 80/100) */
+function BigPct({ x, sem, muted, fs = 22 }) {
+  if (x.pct == null) return <div style={{ fontSize: 12, fontWeight: 600, color: muted, marginTop: 2, whiteSpace: 'nowrap' }}>{x.total > 0 ? 'Tanpa target' : '–'}</div>;
+  const c = x.pct >= 100 ? sem.good : x.pct >= 80 ? sem.warn : sem.bad;
+  return <div style={{ fontSize: fs, fontWeight: 800, color: c, marginTop: 2, letterSpacing: '-0.02em' }}>{Math.round(x.pct)}%</div>;
+}
 function PctBar({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
   const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
@@ -485,7 +490,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                   ))}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6, fontSize: 15, color: T.muted }}>
-                  {keys.map((k) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center' }}>{short(k)}</div>)}
+                  {keys.map((k, i) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center', lineHeight: 1.15 }}>{short(k)}<BigPct x={st[i]} sem={sem} muted={T.muted} /></div>)}
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
