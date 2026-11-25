@@ -328,29 +328,33 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 }
 
 /* Tampilan padat untuk banyak brand: grid kartu kecil tanpa grafik, ukuran menyesuaikan jumlah brand dan bulan. */
-function BrandName({ id, value, ro, onChange }) {
-  const [edit, setEdit] = useState(false);
-  if (edit && !ro) return <input autoFocus id={`bn-${id}`} aria-label="Nama brand" className="field font-semibold" value={value} onChange={(e) => onChange(e.target.value)} onBlur={() => setEdit(false)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEdit(false); }} />;
-  return (
-    <div className="flex items-center justify-between gap-2 min-h-[2.25rem]">
-      <span className="truncate text-sm font-semibold" aria-label="Nama brand">{value || 'Tanpa nama'}</span>
-      {!ro && (
-        <button type="button" id={`bn-${id}-btn`} aria-label="Ubah nama brand" title="Ubah nama brand" onClick={() => setEdit(true)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--line)] bg-white text-[var(--muted)] hover:text-[var(--fg)] hover:shadow-sm">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
-        </button>
-      )}
-    </div>
-  );
-}
 /* Tabung kaca transparan: tinggi tabung = 100% target, isi cairan = capaian (tanpa garis ukur) */
 const isDarkT = (T) => { const m = /^#?([0-9a-f]{6})/i.exec(T.paper || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 110; };
-function Glass({ T, pct, h }) {
-  const p = pct == null ? 0 : Math.max(0, Math.min(100, pct)), inner = h - 6, dk = isDarkT(T);
+function Glass({ T, pct, h, total }) {
+  const noTarget = pct == null && total > 0, over = pct != null && pct > 100;
+  const p = noTarget ? 50 : pct == null ? 0 : Math.max(0, Math.min(100, pct)), inner = h - 6, dk = isDarkT(T);
   const w = (a) => `rgba(255,255,255,${a})`;
+  const fillH = p > 0 ? Math.max(8, (inner * p) / 100) : 0;
+  const top = ((T.barFill || '').match(/#[0-9a-f]{6}/i) || [T.bars[1]])[0];
   return (
-    <div style={{ position: 'relative', width: '100%', height: h, boxSizing: 'border-box', border: `1.5px solid ${dk ? w(0.4) : 'rgba(90,120,165,0.35)'}`, borderRadius: '18px / 12px', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)', overflow: 'hidden' }}>
-      {p > 0 && <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2, height: Math.max(8, (inner * p) / 100), background: T.barFill || T.bars[1], borderRadius: '15px / 10px', opacity: 0.93 }} />}
-      <div style={{ position: 'absolute', top: 9, bottom: 9, left: 8, width: 6, borderRadius: 6, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />
+    <div style={{ position: 'relative', width: '100%', height: h }}>
+      <div style={{ position: 'absolute', inset: 0, boxSizing: 'border-box', border: `1.5px solid ${dk ? w(0.4) : 'rgba(90,120,165,0.35)'}`, borderRadius: '18px / 12px', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)', overflow: 'hidden', clipPath: over ? 'polygon(0 0, 52% 0, 58% 10px, 64% 4px, 70% 18px, 77% 8px, 84% 22px, 92% 12px, 100% 26px, 100% 100%, 0 100%)' : 'none' }}>
+        {p > 0 && <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2, height: fillH, background: T.barFill || T.bars[1], borderRadius: noTarget ? '0 0 15px 15px / 0 0 10px 10px' : '15px / 10px', opacity: 0.93 }} />}
+        {noTarget && (
+          <div style={{ position: 'absolute', left: 2, right: 2, bottom: 2 + fillH - 1, height: 14, display: 'flex', alignItems: 'flex-end', gap: 0, opacity: 0.93 }}>
+            {[0, 3, 0].map((o, i) => <div key={i} style={{ flex: 1, height: 12, marginBottom: -o, borderRadius: '50% 50% 0 0', background: top }} />)}
+          </div>
+        )}
+        <div style={{ position: 'absolute', top: 9, bottom: 9, left: 8, width: 6, borderRadius: 6, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />
+      </div>
+      {over && (
+        <>
+          <div style={{ position: 'absolute', top: 14, left: 'calc(100% - 4px)', width: 12, height: 14, borderRadius: '0 8px 8px 0', background: top, opacity: 0.95 }} />
+          <div style={{ position: 'absolute', top: 24, left: 'calc(100% + 1px)', width: 6, height: Math.round(h * 0.42), borderRadius: 3, background: top, opacity: 0.95 }} />
+          <div style={{ position: 'absolute', top: 24 + Math.round(h * 0.42) - 3, left: 'calc(100% - 1px)', width: 11, height: 11, borderRadius: '50%', background: top, opacity: 0.95 }} />
+          <div style={{ position: 'absolute', top: 24 + Math.round(h * 0.42) + 22, left: 'calc(100% + 2px)', width: 5, height: 5, borderRadius: '50%', background: top, opacity: 0.8 }} />
+        </>
+      )}
     </div>
   );
 }
@@ -360,7 +364,7 @@ function MiniChart({ T, keys, st, h, short, pick, bid, bname, w }) {
       <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: h }}>
         {st.map((x, i) => (
           <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${bid}-${keys[i]}` }} label={`Isi ${bname} ${BULAN[parseKey(keys[i]).m]}`} style={{ flex: 1, minWidth: 0, height: h }}>
-            <Glass T={T} pct={x.pct} h={h} />
+            <Glass T={T} pct={x.pct} total={x.total} h={h} />
           </Hit>
         ))}
       </div>
@@ -478,7 +482,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                   {st.map((x, i) => (
                     <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
                       style={{ flex: 1, maxWidth: 76, height: chartH }}>
-                      <Glass T={T} pct={x.pct} h={chartH} />
+                      <Glass T={T} pct={x.pct} total={x.total} h={chartH} />
                     </Hit>
                   ))}
                 </div>
@@ -665,7 +669,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, height: chartH }}>
             {S.months.map((m) => (
               <div key={m.k} style={{ flex: 1, maxWidth: 110, height: chartH }}>
-                <Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} h={chartH} />
+                <Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} total={m.total} h={chartH} />
               </div>
             ))}
           </div>
@@ -837,10 +841,11 @@ function Present({ items, deck, index, setIndex, onExit, api }) {
   const go = useCallback((fn) => setIndex((c) => Math.max(0, Math.min(total - 1, fn(c)))), [total, setIndex]);
   useEffect(() => {
     const id = setInterval(() => setElapsed((e) => e + 1), 1000);
+    document.body.classList.add('presenting');
     try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); } catch (e) {}
     const onFs = () => { if (!document.fullscreenElement) onExit(); };
     document.addEventListener('fullscreenchange', onFs);
-    return () => { clearInterval(id); document.removeEventListener('fullscreenchange', onFs); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} };
+    return () => { clearInterval(id); document.body.classList.remove('presenting'); document.removeEventListener('fullscreenchange', onFs); try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) {} };
   }, []);
   useEffect(() => {
     const onKey = (e) => {
@@ -1081,7 +1086,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 const pct = st.pct == null ? null : Math.round(st.pct);
                 return (
                   <div key={b.id} style={tintOf(bi)} className="rounded-xl border p-3 flex flex-col gap-3">
-                    <BrandName id={b.id} value={b.name} ro={ro} onChange={(v) => api.setBrand(s.id, b.id, v)} />
+                    <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field font-semibold" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
@@ -1099,7 +1104,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                     {!ro && (
                       <div className="flex items-center gap-2 border-t border-black/10 pt-3">
                         <button type="button" className="btn flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={!!c.skip}
-                          onClick={() => ask({ title: `Kosongkan angka ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dikosongkan. Bulan lain dan brand tetap.`, confirm: `Kosongkan ${mName}`, onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Kosongkan {BULAN_PENDEK[parseKey(ck).m]}</button>
+                          onClick={() => ask({ title: `Hapus ${mName} untuk ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dihapus. Bulan lain dan brand tetap.`, confirm: 'Hapus bulan ini', onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Hapus bulan ini</button>
                         <button type="button" className="btn btn-danger flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={s.brands.length === 1}
                           onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
                       </div>
@@ -1389,7 +1394,7 @@ function RangeModal({ deck, api, onClose }) {
 function Toast({ toast }) {
   if (!toast) return null;
   return (
-        <div role="status" aria-live="polite" className="pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}>
+        <div role="status" aria-live="polite" className="toast-wrap pointer-events-none fixed inset-x-0 z-[60] flex justify-center px-4" style={{ bottom: 'max(20px, env(safe-area-inset-bottom, 0px))' }}>
           <div className={'toast-in flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white shadow-md ' + (toast.kind === 'err' ? 'bg-red-600' : 'bg-slate-900')}>
             <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{toast.kind === 'err' ? <path d="M12 8v5M12 17h.01M10.3 3.9L2.4 18a2 2 0 001.7 3h15.8a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z" /> : <path d="M5 12l5 5 9-10" />}</svg>
             {toast.msg}
