@@ -1106,7 +1106,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 );
               })}
               {s.brands.length > BRANDS_PER_SLIDE && <p className="m-0 text-xs text-[var(--muted)]">{`Brand dibagi rata ke ${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide.`}</p>}
-              <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-gray-500 shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
+              <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-black shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
               {!ro && <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button>}
             </section>
 
