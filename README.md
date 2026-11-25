@@ -26,7 +26,7 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 
 - Login admin memakai username (**Toni**), bukan email; Toni tidak muncul di daftar login sales
 - Tombol **Download** (PPTX) hanya untuk admin; tombol **Lihat Presentasi** untuk semua
-- Tema slide ada 5 model (**Morph**: latar gradasi ungu-biru, kartu kaca, bola 3D, font Montserrat, mengikuti template PowerPoint Morph): Langit (kaca + bola 3D), Korporat (header gelap, kartu tegas, kotak), Malam neon (kartu bulat, cincin), Editorial (garis tegas, lingkaran datar). Tema lama otomatis dipetakan ke 4 model ini
+- Tema slide ada 6 model (**Glass**: latar hijau gelap ke hitam, aksen oranye, kartu kaca blur, font Manrope tipis, mengikuti template "Glass Morph Pitch Deck"; **Morph**: latar gradasi ungu-biru, kartu kaca, bola 3D, font Montserrat, mengikuti template PowerPoint Morph); lainnya: **Morph**: latar gradasi ungu-biru, kartu kaca, bola 3D, font Montserrat, mengikuti template PowerPoint Morph): Langit (kaca + bola 3D), Korporat (header gelap, kartu tegas, kotak), Malam neon (kartu bulat, cincin), Editorial (garis tegas, lingkaran datar). Tema lama otomatis dipetakan ke 4 model ini
 
 - Login: satu daftar nama. **Toni (Admin)** (merah) di paling atas, lalu semua sales; password dicek sesuai pilihan
 - **Canvasing**: satu atau beberapa slide otomatis sebelum Penutup (4 kartu per halaman). Sales dan admin mengisi form (nama kontraktor/konsumen, produk yang ditawarkan, catatan maks. 250 karakter, foto). Foto diperkecil otomatis. Sales hanya bisa mengubah/menghapus entri sendiri, admin semuanya. Data di tabel `lp_canvas` (fungsi `lp_canvas_list/save/delete` untuk sales)
@@ -40,6 +40,7 @@ Setiap objek bernama sama antar slide dengan awalan `!!` (`!!title`, `!!sub`, `!
 ## Logo, urutan, dan fokus sales
 
 - Logo perusahaan (`logo.png`) tampil di login, header web, sampul, penutup, dan header tiap slide sales; ikut berpindah posisi saat transisi Morph.
+- Slide sales: maksimal 6 brand per slide (kelebihannya di slide berikutnya), semua brand tampil dengan grafik batang + target. Setelah slide brand terakhir tiap sales ada slide **Kesimpulan** (total semua brand per bulan, capaian, tren, brand tertinggi dan perlu perhatian; hanya membandingkan brand di dalam satu sales)
 - Bola 3D di latar slide acak per slide (di-seed dari id slide, jadi tetap sama di editor, presentasi, dan export).
 - Admin: menu Data → **Atur urutan sales** (seret baris atau tombol panah).
 - Sales: saat masuk langsung membuka slide miliknya (ditandai "Saya"), presentasi dimulai dari slide itu, dan tombol "Slide saya" kembali ke sana.

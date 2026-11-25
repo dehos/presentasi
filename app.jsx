@@ -7,6 +7,7 @@ const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
 const SLIDE_THEMES = {
   langit: { name: 'Langit', paper: '#e8f1f8', ink: '#13243a', muted: '#5d7288', grid: '#cfdeeb', axis: '#a9bfd3', header: '#dbe7f1', headerFg: '#13243a', headerSub: '#5d7288', cover: '#e8f1f8', coverFg: '#13243a', coverSub: '#2f6fed', coverMuted: '#5d7288', accent: '#2f6fed', bars: ['#a9c4f7', '#2f6fed', '#a9c4f7'], target: '#e08a1e', targetText: '#b3690d', card: '#ffffff', deco: 'orbs', hdrLine: 'none', cardR: 16, cardBorder: null, cardTop: null, barR: '5px 5px 0 0', coverBar: [96, 8, 0] },
   morph: { name: 'Morph', font: "'Montserrat', 'Inter', system-ui, sans-serif", headFont: "'Montserrat', 'Inter', system-ui, sans-serif", paper: '#8b6cf0', bgImage: 'linear-gradient(135deg, #6ec6ee 0%, #9b8cf3 36%, #b45cf0 66%, #4a5fd0 100%)', ink: '#ffffff', muted: 'rgba(255,255,255,0.8)', grid: 'rgba(255,255,255,0.3)', axis: 'rgba(255,255,255,0.5)', header: 'transparent', headerFg: '#ffffff', headerSub: 'rgba(255,255,255,0.88)', cover: '#8b6cf0', coverFg: '#ffffff', coverSub: '#ffffff', coverMuted: 'rgba(255,255,255,0.82)', accent: '#ffffff', bars: ['#e9c9ff', '#ffffff', '#e9c9ff'], barFill: 'linear-gradient(180deg, #ffe3ff 0%, #c9a6ff 100%)', sem: { good: '#8dffcf', warn: '#ffe66d', bad: '#ffb3c0' }, orbs: ['#e2b8ff', '#a27cff', '#7fd3f7', '#c06bf5'], target: '#ffe66d', targetText: '#ffe66d', card: 'rgba(255,255,255,0.16)', deco: 'orbs', hdrLine: 'none', cardR: 24, cardBorder: '1.5px solid rgba(255,255,255,0.6)', cardTop: null, barR: '8px 8px 0 0', coverBar: [120, 6, 6] },
+  glass: { name: 'Glass', font: "'Manrope', 'Inter', system-ui, sans-serif", headFont: "'Manrope', 'Inter', system-ui, sans-serif", hw: 400, nw: 500, blur: 14, orbBoost: 0.2, paper: '#0b2e26', bgImage: 'linear-gradient(125deg, #0f5c45 0%, #0b3329 34%, #07130f 68%, #1b0d07 100%)', ink: '#f4f0ea', muted: 'rgba(244,240,234,0.62)', grid: 'rgba(255,255,255,0.14)', axis: 'rgba(255,255,255,0.3)', header: 'transparent', headerFg: '#f7f3ee', headerSub: 'rgba(247,243,238,0.66)', cover: '#0b2e26', coverFg: '#f7f3ee', coverSub: '#ff7a3d', coverMuted: 'rgba(247,243,238,0.62)', accent: '#ff6a2a', bars: ['#ff9a62', '#ff6a2a', '#ff9a62'], barFill: 'linear-gradient(180deg, #ff8a4c 0%, #e5420f 100%)', sem: { good: '#5fe0b0', warn: '#ffc15e', bad: '#ff8274' }, orbs: ['#ff7a3d', '#e8400f', '#ff9d5c', '#2fae85'], target: '#7fe3c1', targetText: '#7fe3c1', card: 'rgba(255,255,255,0.07)', deco: 'orbs', hdrLine: 'none', cardR: 22, cardBorder: '1px solid rgba(255,255,255,0.2)', cardTop: null, barR: '8px 8px 0 0', coverBar: [64, 3, 3] },
   korporat: { name: 'Korporat', paper: '#f4f6fa', ink: '#14213a', muted: '#5a6785', grid: '#dde2ec', axis: '#aeb7c8', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#e0861c', targetText: '#b3690d', card: '#ffffff', deco: 'squares', hdrLine: '6px solid #1D9E75', cardR: 4, cardBorder: null, cardTop: '5px solid #1D9E75', barR: '0', coverBar: [14, 72, 0] },
   malam: { name: 'Malam neon', paper: '#17152e', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: 'transparent', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#17152e', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffb84d', targetText: '#ffb84d', card: 'rgba(255,255,255,0.06)', deco: 'rings', hdrLine: '3px solid #a995ff', cardR: 28, cardBorder: '1px solid #4a4580', cardTop: null, barR: '12px 12px 0 0', coverBar: [96, 4, 4] },
   pasir: { name: 'Editorial', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#d9c9b3', axis: '#b9a68d', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3', deco: 'flat', hdrLine: '3px solid #2b2a28', cardR: 0, cardBorder: '2px solid #2b2a28', cardTop: null, barR: '0', coverBar: [140, 6, 0] },
@@ -247,6 +248,7 @@ const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 
 const semOf = (T) => (T.sem ? { ...T.sem, card: T.card } : lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
+const blurOf = (T) => (T.blur ? { backdropFilter: `blur(${T.blur}px)`, WebkitBackdropFilter: `blur(${T.blur}px)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 28px -12px rgba(0,0,0,0.55)' } : {});
 const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
 
 /* Hiasan latar: bola 3D di belakang kartu kaca. Posisi, ukuran, dan warnanya acak per slide
@@ -271,7 +273,7 @@ function orbSpots(T, kind, seed) {
     spots.push({ x: between(900, 1020), y: cover ? between(-90, 160) : between(150, 380), s: big });
     spots.push({ x: between(780, 1010), y: cover ? between(430, 560) : between(-60, 100), s: small });
   }
-  return spots.map((o) => { const c1 = pick(); let c2 = pick(); if (c2 === c1 && pal.length > 1) c2 = pal[(pal.indexOf(c1) + 1) % pal.length]; return { ...o, c1, c2, op: between(0.5, 0.78), lx: between(24, 38), ly: between(20, 32) }; });
+  return spots.map((o) => { const c1 = pick(); let c2 = pick(); if (c2 === c1 && pal.length > 1) c2 = pal[(pal.indexOf(c1) + 1) % pal.length]; return { ...o, c1, c2, op: Math.min(0.95, between(0.5, 0.78) + (T.orbBoost || 0)), lx: between(24, 38), ly: between(20, 32) }; });
 }
 function Deco({ T, kind, seed }) {
   const model = T.deco || 'orbs';
@@ -281,7 +283,7 @@ function Deco({ T, kind, seed }) {
     if (model === 'rings') st = { ...base, borderRadius: Math.round(o.s / 2), border: `${Math.max(5, Math.round(o.s / 22))}px solid ${o.c1}`, opacity: Math.min(o.op, 0.7) * (kind === 'sales' ? 0.7 : 1) };
     else if (model === 'squares') st = { ...base, borderRadius: Math.round(o.s / 10), background: o.c1, opacity: (kind === 'sales' ? 0.16 : 0.3) + (i ? 0.06 : 0) };
     else if (model === 'flat') st = { ...base, borderRadius: Math.round(o.s / 2), background: o.c1, opacity: kind === 'sales' ? 0.2 : 0.3 };
-    else st = { ...base, borderRadius: Math.round(o.s / 2), opacity: kind === 'sales' ? Math.min(o.op, 0.6) : o.op,
+    else st = { ...base, borderRadius: Math.round(o.s / 2), opacity: kind === 'sales' && !T.orbBoost ? Math.min(o.op, 0.6) : o.op,
       background: `radial-gradient(circle at ${o.lx.toFixed(0)}% ${o.ly.toFixed(0)}%, rgba(255,255,255,0.85) 0, rgba(255,255,255,0) 24%), radial-gradient(circle at ${(o.lx + 6).toFixed(0)}% ${(o.ly + 6).toFixed(0)}%, ${o.c1}, ${o.c2})`,
       boxShadow: `inset -${Math.round(o.s / 14)}px -${Math.round(o.s / 11)}px ${Math.round(o.s / 6)}px rgba(0,0,0,0.2)` };
     return <div key={i} aria-hidden="true" data-m={`orb${i}`} style={st} />;
@@ -321,6 +323,29 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 }
 
 /* Tampilan padat untuk banyak brand: grid kartu kecil tanpa grafik, ukuran menyesuaikan jumlah brand dan bulan. */
+function MiniChart({ T, keys, st, bi, h, short, pick, bid, bname, w }) {
+  const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
+  const ghost = maxV === 0;
+  return (
+    <div style={{ width: w, flex: 'none' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: h, borderBottom: `2px solid ${T.axis}` }}>
+        {st.map((x, i) => {
+          const bh = ghost ? GHOST[(bi * 3 + i) % 9] * h * 0.8 : ((x.total || 0) / maxV) * (h - 6);
+          const th = !ghost && x.target ? (x.target / maxV) * (h - 6) : null;
+          return (
+            <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${bid}-${keys[i]}` }} label={`Isi ${bname} ${BULAN[parseKey(keys[i]).m]}`} style={{ position: 'relative', flex: 1, minWidth: 0, height: h, display: 'flex', alignItems: 'flex-end' }}>
+              <div style={{ width: '100%', height: bh, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
+              {th != null && <div style={{ position: 'absolute', left: -3, right: -3, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
+            </Hit>
+          );
+        })}
+      </div>
+      <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 12, color: T.muted }}>
+        {keys.map((k) => <div key={k} style={{ flex: 1, minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>{short(k)}</div>)}
+      </div>
+    </div>
+  );
+}
 function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   const nb = sales.brands.length;
   const gap = 12, availH = 470;
@@ -335,7 +360,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   const { cols, rowsN, cardH } = L;
   const roomy = cols <= 3;
   const rowH = Math.max(15, Math.min(roomy ? 46 : 34, L.raw));
-  const fs = Math.max(12, Math.min(roomy ? 20 : 17, Math.floor(rowH * 0.62)));
+  const fs = Math.max(12, Math.min(roomy ? 18 : 15, Math.floor(rowH * 0.62)));
   const nameFs = ultra ? 16 : roomy ? 26 : rowsN >= 3 ? 19 : 22;
   const nameH = ultra ? 22 : roomy ? 34 : 26;
   const pctW = roomy ? 66 : 44, trW = roomy ? 70 : 46;
@@ -344,9 +369,9 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
       {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : roomy ? '16px 22px' : '12px 14px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : roomy ? '16px 22px' : '12px 14px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
-              style={{ fontFamily: T.headFont || headFont, fontWeight: 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
+              style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
             </Hit>
             {ultra ? (
@@ -364,15 +389,21 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
                   );
                 })}
               </div>
-            ) : keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
+            ) : (
+              <div style={{ display: 'flex', gap: roomy ? 16 : 8, alignItems: 'flex-start' }}>
+                <MiniChart T={T} keys={keys} st={st} bi={bi} h={Math.max(52, rowH * keys.length - 18)} short={short} pick={pick} bid={b.id} bname={b.name} w={roomy ? 122 : 84} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
               <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
                 style={{ display: 'flex', alignItems: 'center', gap: roomy ? 10 : 6, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                 <span style={{ width: roomy ? labW + 8 : labW, flex: 'none', color: T.muted }}>{short(k)}</span>
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
                 <span style={{ width: pctW, flex: 'none', textAlign: 'right' }}>{rowH >= 26 ? <PctBar small v={st[i].pct} sem={sem} muted={T.muted} /> : <Pct small v={st[i].pct} sem={sem} muted={T.muted} />}</span>
-                <span style={{ width: trW, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend small v={st[i].trend} sem={sem} muted={T.muted} />}</span>
               </Hit>
             ))}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -399,7 +430,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
         <LogoMark h={54} style={{ flex: 'none' }} />
-        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
+        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
         <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: pages > 1 ? 700 : 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
@@ -415,8 +446,8 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
             const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
             const ghost = maxV === 0;
             return (
-              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
-                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
+                <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
@@ -452,10 +483,10 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
         </div>
         )}
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
-          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>}
-          {!dense && <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>}
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
           <span>% = capaian dari target</span>
-          <span>▲ ▼ = dibanding bulan sebelumnya</span>
+          {!dense && <span>▲ ▼ = dibanding bulan sebelumnya</span>}
         </div>
       </div>
 
@@ -481,7 +512,7 @@ function CoverSlide({ deck, ro, api }) {
       <Deco T={T} kind="cover" seed="cover" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
-      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.cover.title} label="Judul" onChange={(v) => api.setCover({ title: v })} />
       </div>
       <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
@@ -504,11 +535,129 @@ function ClosingSlide({ deck, ro, api }) {
       <Deco T={T} kind="closing" seed="closing" />
       <LogoMark h={92} style={{ position: 'absolute', left: 96, top: 64 }} />
       <div data-m="hdr" style={{ width: T.coverBar[0], height: T.coverBar[1], borderRadius: T.coverBar[2], background: T.accent, marginBottom: 40 }} />
-      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
+      <div data-m="title" data-mt="l" style={{ fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 96, letterSpacing: '-0.02em', lineHeight: 1.05 }}>
         <Ed ro={ro} value={deck.closing.title} label="Judul penutup" onChange={(v) => api.setClosing({ title: v })} />
       </div>
       <div data-m="sub" data-mt="l" style={{ fontSize: 36, color: T.coverSub, marginTop: 28 }}>
         <Ed ro={ro} value={deck.closing.sub} label="Subjudul penutup" onChange={(v) => api.setClosing({ sub: v })} />
+      </div>
+    </div>
+  );
+}
+
+/* ===== Slide kesimpulan per sales: total semua brand per bulan, capaian, tren, brand terbaik / perlu perhatian ===== */
+function summaryOf(sales, keys) {
+  const months = keys.map((k) => {
+    let t = 0, g = 0, has = false, hasT = false;
+    sales.brands.forEach((b) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) { t += tv; has = true; } if (gv != null) { g += gv; hasT = true; } });
+    return { k, total: has ? t : null, target: hasT ? g : null };
+  });
+  const sum = (a) => a.reduce((x, y) => x + (y || 0), 0);
+  const total = sum(months.map((m) => m.total)), target = sum(months.map((m) => m.target));
+  const filled = months.filter((m) => m.total != null);
+  const last = filled[filled.length - 1], prev = filled.length > 1 ? filled[filled.length - 2] : null;
+  const trend = last && prev && prev.total ? ((last.total - prev.total) / prev.total) * 100 : null;
+  const brands = sales.brands.map((b) => {
+    let t = 0, g = 0;
+    keys.forEach((k) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) t += tv; if (gv != null) g += gv; });
+    return { id: b.id, name: b.name || 'Brand', total: t, target: g, pct: g ? (t / g) * 100 : null };
+  });
+  const ranked = brands.filter((b) => b.pct != null).sort((a, b) => b.pct - a.pct);
+  return { months, total, target, pct: target ? (total / target) * 100 : null, trend, last, prev, brands, ranked, any: filled.length > 0 };
+}
+function SummarySlide({ sales, deck, n, total, pick }) {
+  const T = themeOf(deck), sem = semOf(T), keys = monthsOf(deck);
+  const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
+  const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
+  const S = summaryOf(sales, keys);
+  const maxV = Math.max(0, ...S.months.flatMap((m) => [m.total || 0, m.target || 0]));
+  const chartH = 190;
+  const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
+  const best = S.ranked.slice(0, 3);
+  const low = S.ranked.length > 3 ? S.ranked.slice(-Math.min(3, S.ranked.length - 3)).reverse() : [];
+  const lines = [];
+  if (!S.any) lines.push('Belum ada data penjualan yang diisi.');
+  else {
+    lines.push(S.pct != null ? `Total penjualan ${fmtCompact(S.total)} dari target ${fmtCompact(S.target)}, tercapai ${Math.round(S.pct)}%.` : `Total penjualan ${fmtCompact(S.total)} (target belum diisi).`);
+    if (S.trend != null) lines.push(Math.abs(S.trend) < 0.05 ? `${BULAN[parseKey(S.last.k).m]} sama dengan ${BULAN[parseKey(S.prev.k).m]}.` : `${BULAN[parseKey(S.last.k).m]} ${S.trend > 0 ? 'naik' : 'turun'} ${fmt1(Math.abs(S.trend))}% dibanding ${BULAN[parseKey(S.prev.k).m]}.`);
+    if (best[0]) lines.push(`Brand terbaik ${best[0].name} (${Math.round(best[0].pct)}%)` + (low[0] ? `, perlu perhatian ${low[0].name} (${Math.round(low[0].pct)}%).` : '.'));
+  }
+  const card = { ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '18px 22px', boxSizing: 'border-box' };
+  const List = ({ title, rows, mk }) => (
+    <div data-m={mk} style={{ marginTop: 10 }}>
+      <div style={{ fontSize: 15, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
+      {rows.map((b, i) => (
+        <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 31, fontSize: 18, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+          <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: T.nw || 600 }}>{b.name}</span>
+          <span style={{ color: T.muted, whiteSpace: 'nowrap', fontSize: 17 }}>{fmtCompact(b.total)}</span>
+          <span style={{ width: 70, flex: 'none' }}><PctBar small v={b.pct} sem={sem} muted={T.muted} /></span>
+        </div>
+      ))}
+    </div>
+  );
+  return (
+    <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
+      <Deco T={T} kind="sales" seed={sales.id + 'k'} />
+      <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+        <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
+        <LogoMark h={54} style={{ flex: 'none' }} />
+        <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
+          {sales.name || 'Nama sales'}
+        </Hit>
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 700, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+          Kesimpulan · {rangeText(deck)}
+        </Hit>
+      </div>
+
+      <div style={{ padding: '22px 48px 0', display: 'flex', gap: 16, alignItems: 'stretch' }}>
+        <div data-m="card-0" style={{ ...card, flex: '0 0 560px', height: 480 }}>
+          <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 12 }}>Total semua brand per bulan</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, height: chartH, borderBottom: `2px solid ${T.axis}` }}>
+            {S.months.map((m, i) => {
+              const bh = maxV ? ((m.total || 0) / maxV) * (chartH - 6) : GHOST[i % 9] * chartH * 0.6;
+              const th = maxV && m.target ? (m.target / maxV) * (chartH - 6) : null;
+              return (
+                <div key={m.k} style={{ position: 'relative', flex: 1, maxWidth: 110, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
+                  <div style={{ width: '100%', height: bh, background: maxV ? (T.barFill || T.bars[1]) : 'transparent', border: maxV ? 'none' : `2px dashed ${T.axis}`, borderBottom: 'none', borderRadius: T.barR }} />
+                  {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
+            {S.months.map((m) => <div key={m.k} style={{ flex: 1, maxWidth: 110, textAlign: 'center', lineHeight: 1.3 }}>{short(m.k)}<div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{m.total == null ? '–' : fmtCompact(m.total)}</div></div>)}
+          </div>
+          <div style={{ display: 'flex', gap: 22, marginTop: 8, fontSize: 15, color: T.muted }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 22, height: 3, borderRadius: 2, background: T.target }} />Target</span>
+          </div>
+          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
+            {[['Total penjualan', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian target', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren bulan terakhir', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
+              <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '10px 12px' }}>
+                <div style={{ fontSize: 14, color: T.muted, whiteSpace: 'nowrap' }}>{l}</div>
+                <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 30, color: c, whiteSpace: 'nowrap' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div data-m="card-1" style={{ ...card, flex: 1, minWidth: 0, height: 480 }}>
+          <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 10 }}>Kesimpulan</div>
+          <div style={{ fontSize: 19, lineHeight: 1.4 }}>{lines.map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
+          {best.length > 0 && <List mk="sum-best" title="Capaian tertinggi" rows={best} />}
+          {low.length > 0 && <List mk="sum-low" title="Perlu perhatian" rows={low} />}
+        </div>
+      </div>
+
+      <div data-m="note" style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 21, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
+        <Hit pick={pick} target={{ id: 's-note' }} label="Ubah catatan" style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3 }}>
+            <span style={{ color: T.muted }}>Catatan dari </span>
+            <span style={{ fontWeight: 600 }}>{sales.name || 'sales'}</span>
+            <span style={{ color: T.muted }}>: </span>
+            {sales.note ? <span>“{sales.note}”</span> : <span style={{ color: T.muted, fontStyle: 'italic' }}>belum ada catatan</span>}
+          </div>
+        </Hit>
+        <span style={{ color: T.muted, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
       </div>
     </div>
   );
@@ -519,7 +668,8 @@ const CANVAS_PER_PAGE = 4, CANVAS_MAX = 250;
 const BRANDS_PER_SLIDE = 6;
 const salesPages = (s) => {
   const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE));
-  return Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(p * BRANDS_PER_SLIDE, (p + 1) * BRANDS_PER_SLIDE) }));
+  const pg = Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(p * BRANDS_PER_SLIDE, (p + 1) * BRANDS_PER_SLIDE) }));
+  return [...pg, { kind: 'sales', summary: true, sales: s, key: s.id + '-sum', page: n, pages: n, brands: [] }];
 };
 const itemIndexOf = (deck, sid) => { let i = 1; for (const x of deck.sales) { if (x.id === sid) return i; i += salesPages(x).length; } return 1; };
 const canvasPages = (list) => {
@@ -535,7 +685,7 @@ function CanvasSlide({ item, deck, n, total }) {
       <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
         <LogoMark h={54} style={{ flex: 'none' }} />
-        <div data-m="title" data-mt="l" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>Canvasing</div>
+        <div data-m="title" data-mt="l" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>Canvasing</div>
         <div data-m="sub" data-mt="r" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>{sub}</div>
       </div>
       <div style={{ padding: '22px 48px 0', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gridAutoRows: 232, gap: 18 }}>
@@ -548,7 +698,7 @@ function CanvasSlide({ item, deck, n, total }) {
               ? <img src={e.foto} alt={'Foto canvasing ' + e.kontraktor} style={{ width: 196, height: 196, objectFit: 'cover', borderRadius: Math.min(T.cardR, 14), flex: 'none' }} />
               : <div style={{ width: 196, height: 196, flex: 'none', borderRadius: Math.min(T.cardR, 14), border: `2px dashed ${T.axis}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 16 }}>Tanpa foto</div>}
             <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{ fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 22, lineHeight: '28px', height: 28, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.kontraktor || 'Tanpa nama'}</div>
+              <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 22, lineHeight: '28px', height: 28, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{e.kontraktor || 'Tanpa nama'}</div>
               <div style={{ fontSize: 15, fontWeight: 600, lineHeight: '20px', height: 20, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: T.targetText }}>{e.produk}</div>
               <div style={{ flex: 1, minHeight: 0, fontSize: 15, lineHeight: '20px', color: T.ink, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>{e.catatan}</div>
               <div style={{ fontSize: 14, lineHeight: '18px', height: 18, color: T.muted, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Oleh {e.sales}</div>
@@ -565,6 +715,7 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'canvas') return <CanvasSlide item={item} deck={deck} n={n} total={total} />;
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
+  if (item.summary) return <SummarySlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
   return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} deck={deck} n={n} total={total} pick={pick} />;
 }
 
@@ -1231,6 +1382,7 @@ function slideNotes(it, deck) {
   if (it.kind === 'cover') return [deck.cover.title, deck.cover.sub, periodOf(deck), deck.cover.audience].filter(Boolean).join('\n');
   if (it.kind === 'closing') return [deck.closing.title, deck.closing.sub].filter(Boolean).join('\n');
   if (it.kind === 'canvas') return it.entries.map((e) => `${e.kontraktor} (${e.sales}) - ${e.produk}: ${e.catatan}`).join('\n') || 'Belum ada hasil canvasing';
+  if (it.summary) { const S = summaryOf(it.sales, monthsOf(deck)); return [`${it.sales.name} · Kesimpulan · ${rangeText(deck)}`, S.any ? `Total penjualan ${rp(String(S.total))}${S.pct != null ? `, capaian ${Math.round(S.pct)}% dari target` : ''}` : 'Belum ada data', ...S.brands.map((b) => `${b.name}: ${rp(String(b.total))}${b.pct != null ? ' (' + Math.round(b.pct) + '%)' : ''}`)].join('\n'); }
   const s = it.sales, keys = monthsOf(deck), out = [`${s.name} · ${sublineOf(deck)}`];
   (it.brands || s.brands).forEach((b) => {
     out.push(`${b.name}:`);
@@ -1242,7 +1394,7 @@ function slideNotes(it, deck) {
   if (s.note) out.push(`Catatan dari ${s.name}: “${s.note}”`);
   return out.join('\n');
 }
-const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : it.kind === 'canvas' ? 'Canvasing' + (it.pages > 1 ? ' ' + (it.page + 1) : '') : (it.sales.name || 'Tanpa nama') + (it.pages > 1 ? ' ' + (it.page + 1) + '/' + it.pages : '');
+const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : it.kind === 'canvas' ? 'Canvasing' + (it.pages > 1 ? ' ' + (it.page + 1) : '') : (it.sales.name || 'Tanpa nama') + (it.summary ? ' · Kesimpulan' : it.pages > 1 ? ' ' + (it.page + 1) + '/' + it.pages : '');
 async function exportPptx(items, deck, api, onProgress) {
   await Promise.all([loadLib(LIB_PPTX), loadLib(LIB_ZIP), loadLib(LIB_CONV)]);
   onProgress(0, items.length);
