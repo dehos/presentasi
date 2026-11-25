@@ -380,7 +380,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   );
 }
 
-function SalesSlide({ sales, deck, n, total, pick }) {
+function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1 }) {
   const T = themeOf(deck);
   const sem = semOf(T);
   const keys = monthsOf(deck);
@@ -402,8 +402,8 @@ function SalesSlide({ sales, deck, n, total, pick }) {
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
-        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
-          {sublineOf(deck)}
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: pages > 1 ? 700 : 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+          {sublineOf(deck)}{pages > 1 ? ` · Bagian ${page + 1}/${pages}` : ''}
         </Hit>
       </div>
 
@@ -516,6 +516,12 @@ function ClosingSlide({ deck, ro, api }) {
 
 /* ===== Canvasing: slide hasil kunjungan, 4 kartu per halaman ===== */
 const CANVAS_PER_PAGE = 4, CANVAS_MAX = 250;
+const BRANDS_PER_SLIDE = 6;
+const salesPages = (s) => {
+  const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE));
+  return Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(p * BRANDS_PER_SLIDE, (p + 1) * BRANDS_PER_SLIDE) }));
+};
+const itemIndexOf = (deck, sid) => { let i = 1; for (const x of deck.sales) { if (x.id === sid) return i; i += salesPages(x).length; } return 1; };
 const canvasPages = (list) => {
   const n = Math.max(1, Math.ceil(list.length / CANVAS_PER_PAGE));
   return Array.from({ length: n }, (_, p) => ({ kind: 'canvas', key: p ? 'canvas-' + p : 'canvas', page: p, pages: n, count: list.length, entries: list.slice(p * CANVAS_PER_PAGE, (p + 1) * CANVAS_PER_PAGE) }));
@@ -559,7 +565,7 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'canvas') return <CanvasSlide item={item} deck={deck} n={n} total={total} />;
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
-  return <SalesSlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
+  return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} deck={deck} n={n} total={total} pick={pick} />;
 }
 
 
@@ -904,6 +910,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                   </div>
                 );
               })}
+              <p className="m-0 text-xs text-[var(--muted)]">Maksimal {BRANDS_PER_SLIDE} brand per slide.{s.brands.length > BRANDS_PER_SLIDE ? ` Brand ke-${BRANDS_PER_SLIDE + 1} dan seterusnya tampil di slide berikutnya (${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide).` : ''}</p>
               <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>{!ro ? <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button> : <span />}</div>
             </section>
 
@@ -1225,7 +1232,7 @@ function slideNotes(it, deck) {
   if (it.kind === 'closing') return [deck.closing.title, deck.closing.sub].filter(Boolean).join('\n');
   if (it.kind === 'canvas') return it.entries.map((e) => `${e.kontraktor} (${e.sales}) - ${e.produk}: ${e.catatan}`).join('\n') || 'Belum ada hasil canvasing';
   const s = it.sales, keys = monthsOf(deck), out = [`${s.name} · ${sublineOf(deck)}`];
-  s.brands.forEach((b) => {
+  (it.brands || s.brands).forEach((b) => {
     out.push(`${b.name}:`);
     keys.forEach((k) => {
       const c = cellOf(s, k, b.id), st = statsOf(s, k, b.id, keys);
@@ -1235,7 +1242,7 @@ function slideNotes(it, deck) {
   if (s.note) out.push(`Catatan dari ${s.name}: “${s.note}”`);
   return out.join('\n');
 }
-const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : it.kind === 'canvas' ? 'Canvasing' + (it.pages > 1 ? ' ' + (it.page + 1) : '') : (it.sales.name || 'Tanpa nama');
+const labelOfItem = (it) => it.kind === 'cover' ? 'Sampul' : it.kind === 'closing' ? 'Penutup' : it.kind === 'canvas' ? 'Canvasing' + (it.pages > 1 ? ' ' + (it.page + 1) : '') : (it.sales.name || 'Tanpa nama') + (it.pages > 1 ? ' ' + (it.page + 1) + '/' + it.pages : '');
 async function exportPptx(items, deck, api, onProgress) {
   await Promise.all([loadLib(LIB_PPTX), loadLib(LIB_ZIP), loadLib(LIB_CONV)]);
   onProgress(0, items.length);
@@ -1271,7 +1278,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     if (!mine || !nm) return d;
     return { ...d, sales: d.sales.map((x) => (x.id === mine.id ? { ...nm, id: mine.id, name: mine.name } : x)) };
   });
-  const [idx, setIdx] = useState(() => { if (isAdmin) return 1; const i = deck.sales.findIndex((x) => sameName(x.name, session.name)); return i >= 0 ? i + 1 : 1; });
+  const [idx, setIdx] = useState(() => { if (isAdmin) return 1; const m = deck.sales.find((x) => sameName(x.name, session.name)); return m ? itemIndexOf(deck, m.id) : 1; });
   const [presenting, setPresenting] = useState(false);
 
   const [sync, setSync] = useState(isAdmin ? 'memuat' : 'tersimpan');
@@ -1380,7 +1387,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     return () => clearTimeout(saveTimer.current);
   }, [deck]);
 
-  const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.map((s) => ({ kind: 'sales', sales: s, key: s.id })), ...canvasPages(canvas), { kind: 'closing', key: 'closing' }];
+  const items = [{ kind: 'cover', key: 'cover' }, ...deck.sales.flatMap(salesPages), ...canvasPages(canvas), { kind: 'closing', key: 'closing' }];
   const safeIdx = Math.min(idx, items.length - 1);
   const cur = items[safeIdx];
 
@@ -1418,10 +1425,11 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   };
 
   const addSales = () => {
-    const at = cur.kind === 'sales' ? safeIdx : deck.sales.length;
+    const at = cur.kind === 'sales' ? deck.sales.findIndex((x) => x.id === cur.sales.id) : deck.sales.length;
     const ns = mkSales('Sales baru');
-    setDeck((d) => ({ ...d, sales: [...d.sales.slice(0, at), ns, ...d.sales.slice(at)] }));
-    setIdx(at + 1);
+    const nd = { ...deck, sales: [...deck.sales.slice(0, at), ns, ...deck.sales.slice(at)] };
+    setDeck(nd);
+    setIdx(itemIndexOf(nd, ns.id));
   };
   const delSales = () => {
     if (cur.kind !== 'sales' || deck.sales.length === 1) return;
@@ -1429,10 +1437,12 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setIdx(Math.max(1, safeIdx - 1));
   };
   const moveSales = (dir) => {
-    const a = safeIdx - 1, b = a + dir;
-    if (cur.kind !== 'sales' || b < 0 || b >= deck.sales.length) return;
-    setDeck((d) => { const arr = [...d.sales]; [arr[a], arr[b]] = [arr[b], arr[a]]; return { ...d, sales: arr }; });
-    setIdx(safeIdx + dir);
+    if (cur.kind !== 'sales') return;
+    const a = deck.sales.findIndex((x) => x.id === cur.sales.id), b = a + dir;
+    if (a < 0 || b < 0 || b >= deck.sales.length) return;
+    const arr = [...deck.sales]; [arr[a], arr[b]] = [arr[b], arr[a]];
+    setDeck((d) => ({ ...d, sales: arr }));
+    setIdx(itemIndexOf({ sales: arr }, cur.sales.id));
   };
   const fillSample = () => setDeck((d) => {
     const keys = monthsOf(d);
@@ -1453,7 +1463,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const reorderSales = (a, b) => {
     if (a === b || a < 0 || b < 0 || a >= deck.sales.length || b >= deck.sales.length) return;
     const arr = [...deck.sales]; const [m] = arr.splice(a, 1); arr.splice(b, 0, m);
-    if (cur.kind === 'sales') { const ni = arr.findIndex((x) => x.id === cur.sales.id); if (ni >= 0) setIdx(ni + 1); }
+    if (cur.kind === 'sales') setIdx(itemIndexOf({ sales: arr }, cur.sales.id));
     setDeck((d) => ({ ...d, sales: arr }));
   };
   const resetAll = () => { setDeck(DEFAULT); setIdx(1); };
@@ -1600,7 +1610,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </div>
         </main>
 
-        <Panel perm={{ edit: canEdit(cur), admin: isAdmin }} item={cur} deck={deck} api={api} idx={safeIdx} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask} cv={cv} cv={cv}
+        <Panel perm={{ edit: canEdit(cur), admin: isAdmin }} item={cur} deck={deck} api={api} idx={cur.kind === 'sales' ? deck.sales.findIndex((x) => x.id === cur.sales.id) + 1 : 0} count={items.length} onMove={moveSales} mk={mk} setMk={setMk} onSave={saveNow} ask={ask} cv={cv} cv={cv}
           onDelete={() => ask({ title: `Hapus slide ${cur.kind === 'sales' ? (cur.sales.name || 'ini') : ''}?`.replace('  ', ' '), body: 'Semua brand, angka, dan catatan pada slide ini ikut terhapus.', confirm: 'Hapus slide', onConfirm: delSales })} />
       </div>
 
