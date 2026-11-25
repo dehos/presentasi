@@ -40,13 +40,18 @@ const monthsOf = (deck) => {
   for (let i = a; i <= b; i++) out.push(keyOfIdx(i));
   return out.length ? out : [deck.range.from];
 };
+const shortRange = (deck) => {
+  const ms = monthsOf(deck), a = parseKey(ms[0]), b = parseKey(ms[ms.length - 1]);
+  if (ms.length === 1) return `${BULAN_PENDEK[a.m]} ${a.y}`;
+  return a.y === b.y ? `${BULAN_PENDEK[a.m]} – ${BULAN_PENDEK[b.m]} ${b.y}` : `${BULAN_PENDEK[a.m]} ${a.y} – ${BULAN_PENDEK[b.m]} ${b.y}`;
+};
 const rangeText = (deck) => {
   const ms = monthsOf(deck), a = parseKey(ms[0]), b = parseKey(ms[ms.length - 1]);
   if (ms.length === 1) return `${BULAN[a.m]} ${a.y}`;
   return a.y === b.y ? `${BULAN[a.m]} – ${BULAN[b.m]} ${b.y}` : `${BULAN[a.m]} ${a.y} – ${BULAN[b.m]} ${b.y}`;
 };
 const periodOf = (deck) => (deck.cover.period != null ? deck.cover.period : rangeText(deck));
-const sublineOf = (deck) => (deck.subline != null ? deck.subline : `Laporan penjualan · ${rangeText(deck)}`);
+const sublineOf = (deck) => (deck.subline != null ? deck.subline : shortRange(deck));
 
 const mkBrand = (name) => ({ id: uid(), name });
 const mkSales = (name) => ({ id: uid(), name, brands: [mkBrand('BRAND A'), mkBrand('BRAND B'), mkBrand('BRAND C')], data: {}, note: '' });
@@ -92,7 +97,7 @@ function migrateRaw(d) {
     version: 3,
     slideTheme: !d.slideTheme || d.slideTheme === 'navy' ? 'langit' : d.slideTheme,
     range: { from: keys[0], to: keys[keys.length - 1] },
-    subline: d.subline != null ? d.subline : null,
+    subline: d.subline != null && !/^Laporan penjualan/.test(d.subline) ? d.subline : null,
     cover: d.cover,
     closing: d.closing,
     sales: d.sales.map((s) => {
@@ -323,6 +328,20 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 }
 
 /* Tampilan padat untuk banyak brand: grid kartu kecil tanpa grafik, ukuran menyesuaikan jumlah brand dan bulan. */
+function BrandName({ id, value, ro, onChange }) {
+  const [edit, setEdit] = useState(false);
+  if (edit && !ro) return <input autoFocus id={`bn-${id}`} aria-label="Nama brand" className="field font-semibold" value={value} onChange={(e) => onChange(e.target.value)} onBlur={() => setEdit(false)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Escape') setEdit(false); }} />;
+  return (
+    <div className="flex items-center justify-between gap-2 min-h-[2.25rem]">
+      <span className="truncate text-sm font-semibold" aria-label="Nama brand">{value || 'Tanpa nama'}</span>
+      {!ro && (
+        <button type="button" id={`bn-${id}-btn`} aria-label="Ubah nama brand" title="Ubah nama brand" onClick={() => setEdit(true)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg border border-[var(--line)] bg-white text-[var(--muted)] hover:text-[var(--fg)] hover:shadow-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg>
+        </button>
+      )}
+    </div>
+  );
+}
 function MiniChart({ T, keys, st, bi, h, short, pick, bid, bname, w }) {
   const maxV = Math.max(0, ...st.flatMap((x) => [x.total || 0, x.target || 0]));
   const ghost = maxV === 0;
@@ -335,7 +354,7 @@ function MiniChart({ T, keys, st, bi, h, short, pick, bid, bname, w }) {
           return (
             <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${bid}-${keys[i]}` }} label={`Isi ${bname} ${BULAN[parseKey(keys[i]).m]}`} style={{ position: 'relative', flex: 1, minWidth: 0, height: h, display: 'flex', alignItems: 'flex-end' }}>
               <div style={{ width: '100%', height: bh, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
-              {th != null && <div style={{ position: 'absolute', left: -3, right: -3, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
+              {th != null && <div style={{ position: 'absolute', left: -3, right: -3, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
             </Hit>
           );
         })}
@@ -411,7 +430,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   );
 }
 
-function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined = false }) {
+function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined = false, showNote = true }) {
   const T = themeOf(deck);
   const sem = semOf(T);
   const keys = monthsOf(deck);
@@ -433,8 +452,8 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
-        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: pages > 1 ? 700 : 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
-          {sublineOf(deck)}{pages > 1 ? ` · Bagian ${page + 1}/${pages}` : ''}
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+          {sublineOf(deck)}
         </Hit>
       </div>
 
@@ -460,7 +479,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                       <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
                         style={{ position: 'relative', flex: 1, maxWidth: 76, height: chartH, display: 'flex', alignItems: 'flex-end' }}>
                         <div style={{ width: '100%', height: h, background: ghost ? 'transparent' : (T.barFill || T.bars[1]), border: ghost ? `2px dashed ${T.axis}` : 'none', borderBottom: 'none', borderRadius: T.barR }} />
-                        {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
+                        {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
                       </Hit>
                     );
                   })}
@@ -495,6 +514,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         </div>
       </div>
 
+      {showNote ? (
       <div data-m="note" style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', alignItems: 'center', gap: 16, fontSize: 21, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>
         <Hit pick={pick} target={{ id: 's-note' }} label="Ubah catatan" style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.3 }}>
@@ -506,6 +526,9 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         </Hit>
         <span style={{ color: T.muted, flex: 'none', fontSize: 18 }}>{n} / {total}</span>
       </div>
+      ) : (
+        <div data-m="note" style={{ position: 'absolute', left: 48, right: 48, bottom: 22, display: 'flex', justifyContent: 'flex-end', fontSize: 18, color: T.muted, borderTop: `1px solid ${T.grid}`, paddingTop: 10 }}>{n} / {total}</div>
+      )}
     </div>
   );
 }
@@ -635,7 +658,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           {sales.name || 'Nama sales'}
         </Hit>
         <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 700, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
-          Kesimpulan · {rangeText(deck)}
+          {sublineOf(deck)}
         </Hit>
       </div>
 
@@ -649,7 +672,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
               return (
                 <div key={m.k} style={{ position: 'relative', flex: 1, maxWidth: 110, height: chartH, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center' }}>
                   <div style={{ width: '100%', height: bh, background: maxV ? (T.barFill || T.bars[1]) : 'transparent', border: maxV ? 'none' : `2px dashed ${T.axis}`, borderBottom: 'none', borderRadius: T.barR }} />
-                  {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 3, background: T.target, borderRadius: 2 }} />}
+                  {th != null && <div style={{ position: 'absolute', left: -4, right: -4, bottom: th, height: 0, borderTop: `1.5px dashed ${T.target}` }} />}
                 </div>
               );
             })}
@@ -747,7 +770,7 @@ function SlideView({ item, deck, n, total, ro, api, pick }) {
   if (item.kind === 'cover') return <CoverSlide deck={deck} ro={ro} api={api} />;
   if (item.kind === 'closing') return <ClosingSlide deck={deck} ro={ro} api={api} />;
   if (item.summary) return <SummarySlide sales={item.sales} deck={deck} n={n} total={total} pick={pick} />;
-  return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} combined={!!item.combined} deck={deck} n={n} total={total} pick={pick} />;
+  return <SalesSlide sales={{ ...item.sales, brands: item.brands || item.sales.brands }} page={item.page || 0} pages={item.pages || 1} combined={!!item.combined} showNote={!!item.combined} deck={deck} n={n} total={total} pick={pick} />;
 }
 
 
@@ -1066,7 +1089,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 const pct = st.pct == null ? null : Math.round(st.pct);
                 return (
                   <div key={b.id} style={tintOf(bi)} className="rounded-xl border p-3 flex flex-col gap-3">
-                    <input disabled={ro} id={`bn-${b.id}`} aria-label="Nama brand" className="field font-semibold" value={b.name} onChange={(e) => api.setBrand(s.id, b.id, e.target.value)} />
+                    <BrandName id={b.id} value={b.name} ro={ro} onChange={(v) => api.setBrand(s.id, b.id, v)} />
                     <div className="grid grid-cols-2 gap-2">
                       <div>
                         <label className="lbl" htmlFor={`v-${b.id}-${ck}`}>Total penjualan</label>
@@ -1092,8 +1115,9 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                   </div>
                 );
               })}
-              <p className="m-0 text-xs text-[var(--muted)]">Maksimal {BRANDS_PER_SLIDE} brand per slide.{s.brands.length > BRANDS_PER_SLIDE ? ` Brand ke-${BRANDS_PER_SLIDE + 1} dan seterusnya tampil di slide berikutnya (${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide).` : ''}</p>
-              <div className="grid grid-cols-2 gap-2"><button type="button" className="btn btn-green" disabled={ro} onClick={() => api.addBrand(s.id)}>Tambah Brand</button>{!ro ? <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button> : <span />}</div>
+              {s.brands.length > BRANDS_PER_SLIDE && <p className="m-0 text-xs text-[var(--muted)]">{`Brand ke-${BRANDS_PER_SLIDE + 1} dan seterusnya tampil di slide berikutnya (${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide).`}</p>}
+              <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-gray-500 shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
+              {!ro && <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button>}
             </section>
 
             <section className="flex flex-col gap-2 border-t border-[var(--line)] pt-3" aria-labelledby="sec-cat">
@@ -1668,8 +1692,12 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const pick = (t) => { if (!isAdmin && (t.id === 's-name' || t.id === 'g-sub')) return; if (t.month) setMk(t.month); setFocusReq({ id: t.id, n: Date.now() }); };
   useEffect(() => {
     if (!focusReq) return;
-    const el = document.getElementById(focusReq.id);
-    if (!el) return;
+    let el = document.getElementById(focusReq.id);
+    if (!el) {
+      const btn = document.getElementById(focusReq.id + '-btn');
+      if (btn) { btn.click(); setTimeout(() => { const i2 = document.getElementById(focusReq.id); if (i2) { i2.focus({ preventScroll: true }); i2.select && i2.select(); i2.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }, 60); }
+      return;
+    }
     try { el.focus({ preventScroll: true }); } catch (e) {}
     if (el.select) el.select();
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
