@@ -402,7 +402,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
       {sales.brands.map((b, bi) => {
         const st = keys.map((k) => statsOf(sales, k, b.id, keys));
         return (
-          <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : roomy ? '16px 22px' : '12px 14px', minWidth: 0, overflow: 'hidden' }}>
+          <div key={b.id} style={{ ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: Math.round(T.cardR * 0.75), padding: ultra ? '8px 10px' : roomy ? '16px 22px' : '12px 14px', minWidth: 0, overflow: 'hidden' }}>
             <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`}
               style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nameFs, height: nameH, lineHeight: nameH + 'px', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: 4 }}>
               {b.name || 'Nama brand'}
@@ -480,13 +480,13 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
           {sales.brands.map((b, bi) => {
             const st = keys.map((k) => statsOf(sales, k, b.id, keys));
             return (
-              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
+              <div key={b.id} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH }}>
                   {st.map((x, i) => (
-                    <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
+                    <Hit key={keys[i]} m={`stick-${bi}-${i}`} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
                       style={{ flex: 1, maxWidth: 76, height: chartH }}>
                       <Glass T={T} pct={x.pct} total={x.total} h={chartH} />
                     </Hit>
@@ -670,9 +670,9 @@ function SummarySlide({ sales, deck, n, total, pick }) {
         <div data-m="card-0" style={{ ...card, flex: '0 0 560px', height: 480 }}>
           <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 12 }}>Target dan pencapaian per bulan</div>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: chartH }}>
-            {S.months.map((m) => (
+            {S.months.map((m, mi) => (
               <div key={m.k} style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center', height: chartH }}>
-                <div style={{ width: '100%', maxWidth: 90 }}><Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} total={m.total} h={chartH} /></div>
+                <div data-m={`stick-0-${mi}`} style={{ width: '100%', maxWidth: 90 }}><Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} total={m.total} h={chartH} /></div>
               </div>
             ))}
           </div>
