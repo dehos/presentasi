@@ -336,27 +336,21 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 /* Tabung kaca transparan: tinggi tabung = 100% target, isi cairan = capaian (tanpa garis ukur) */
 const isDarkT = (T) => { const m = /^#?([0-9a-f]{6})/i.exec(T.paper || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 110; };
 function Glass({ T, pct, h, total }) {
-  /* gelas kotak terbuka di atas; >100% = cairan membukit melewati bibir; tanpa target = permukaan bergelombang ~ */
-  const noTarget = pct == null && total > 0, over = pct != null && pct > 100;
-  const p = noTarget ? 50 : pct == null ? 0 : Math.max(0, Math.min(100, pct)), dk = isDarkT(T);
-  const w = (a) => `rgba(255,255,255,${a})`;
-  const edge = dk ? w(0.4) : 'rgba(90,120,165,0.35)';
-  const fillH = p > 0 ? Math.max(8, ((h - 2) * p) / 100) : 0;
-  const top = ((T.barFill || '').match(/#[0-9a-f]{6}/i) || [T.bars[1]])[0];
-  const domeH = over ? 10 + Math.min(10, Math.round((pct - 100) * 0.3)) : 0;
-  const N = 28;
+  /* grafik candle: badan = omzet (tinggi relatif terhadap target), garis putus = target 100%, sumbu tipis = sisa menuju target, label Rp di atas badan */
+  const noTarget = pct == null && total > 0;
+  const base = h * 0.72, cap = 120;
+  const p = noTarget ? 60 : pct == null ? 0 : Math.max(0, Math.min(cap, pct));
+  const bodyH = p > 0 ? Math.max(3, (base * p) / 100) : 0;
+  const lineY = base;
+  const col = ((T.barFill || '').match(/#[0-9a-f]{6}/i) || [T.bars[1]])[0];
+  const showRp = h >= 90 && total > 0;
+  const showWick = pct != null && pct < 100 && bodyH > 0;
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, bottom: 0, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: 'none', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)', overflow: 'hidden' }}>
-        {p > 0 && <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: noTarget ? fillH - 8 : fillH, background: T.barFill || T.bars[1], opacity: 0.93 }} />}
-        {noTarget && (
-          <div style={{ position: 'absolute', left: 0, right: 0, bottom: fillH - 9, height: 14, display: 'flex', alignItems: 'flex-end', opacity: 0.93 }}>
-            {Array.from({ length: N }, (_, k) => <div key={k} style={{ flex: 1, height: Math.round(8 + 5 * Math.sin((2 * Math.PI * (k + 0.5)) / N)), background: top }} />)}
-          </div>
-        )}
-        <div style={{ position: 'absolute', top: 8, bottom: 8, left: 8, width: 6, borderRadius: 6, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />
-      </div>
-      {over && <div style={{ position: 'absolute', left: 1, right: 1, top: -domeH, height: domeH, background: top, borderRadius: '50% 50% 0 0 / 100% 100% 0 0', opacity: 0.95 }} />}
+      {pct != null && <div style={{ position: 'absolute', left: 0, right: 0, bottom: lineY, borderTop: `1.5px dashed ${T.muted}`, opacity: 0.55 }} />}
+      {showWick && <div style={{ position: 'absolute', left: 'calc(50% - 1px)', width: 2, bottom: bodyH + (showRp ? 22 : 0), height: Math.max(0, lineY - bodyH - (showRp ? 22 : 0)), background: T.muted, opacity: 0.45 }} />}
+      {bodyH > 0 && <div style={{ position: 'absolute', left: '18%', right: '18%', bottom: 0, height: bodyH, background: T.barFill || T.bars[1], opacity: noTarget ? 0.6 : 1, borderRadius: 2 }} />}
+      {showRp && <div style={{ position: 'absolute', left: -6, right: -6, bottom: bodyH + 4, textAlign: 'center', fontSize: Math.min(16, Math.max(12, h / 17)), fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', lineHeight: 1 }}>{fmtCompact(total)}</div>}
     </div>
   );
 }
@@ -1068,7 +1062,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
               <div role="radiogroup" aria-label="Bulan" className="flex flex-wrap gap-1.5">
                 {keys.map((k) => (
                   <button key={k} type="button" role="radio" aria-checked={k === ck} onClick={() => setMk(k)}
-                    className={'rounded-full border px-3 py-1.5 text-sm font-medium transition-colors ' + (k === ck ? 'border-[#101828] bg-[#101828] text-white' : 'border-[var(--line)] bg-white text-[var(--fg)] hover:bg-[var(--soft)]')}>
+                    className={'rounded-lg border px-3.5 py-1.5 text-sm font-medium transition-colors ' + (k === ck ? 'border-[#101828] bg-[#101828] text-white' : 'border-[var(--line)] bg-white text-[var(--fg)] hover:bg-[var(--soft)]')}>
                     {BULAN_PENDEK[parseKey(k).m]}{multiYear ? ' ' + String(parseKey(k).y).slice(2) : ''}
                   </button>
                 ))}

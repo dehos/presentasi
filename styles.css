@@ -94,3 +94,22 @@ button:focus-visible, select:focus-visible { outline: 2px solid #101828; outline
 .login-glass button { color: inherit; }
 
 body.presenting .toast-wrap { display: none !important; }
+
+/* ===== Gaya shadcn/ui (zinc, radius 0.5rem) untuk panel admin ===== */
+:root { --line: #e4e4e7; --fg: #09090b; --muted: #71717a; --soft: #f4f4f5; --danger: #dc2626; --ring: #a1a1aa; }
+.btn { border-radius: 8px; padding: 0 16px; min-height: 36px; font-size: 14px; font-weight: 500; border: 1px solid #e4e4e7; background: #fff; color: #09090b; box-shadow: 0 1px 2px rgba(0,0,0,.05); transition: background .12s, border-color .12s, color .12s, box-shadow .12s; }
+.btn:hover:not(:disabled) { background: #f4f4f5; border-color: #e4e4e7; }
+.btn-primary { background: #18181b; border-color: #18181b; color: #fafafa; box-shadow: 0 1px 2px rgba(0,0,0,.1); }
+.btn-primary:hover:not(:disabled) { background: #27272a; border-color: #27272a; }
+.btn-danger { color: #dc2626; border-color: #e4e4e7; background: #fff; }
+.btn-danger:hover:not(:disabled) { background: #fef2f2; border-color: #fecaca; }
+.field { border: 1px solid #e4e4e7; border-radius: 8px; background: #fff; min-height: 36px; padding: 6px 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+.field::placeholder { color: #a1a1aa; }
+.field:focus, .field:focus-visible, textarea:focus, input:focus-visible { border-color: #a1a1aa; background: #fff; box-shadow: 0 0 0 3px rgba(161,161,170,.35); }
+.field:disabled { background: #f4f4f5; opacity: .7; }
+.lbl { font-size: 11px; font-weight: 500; letter-spacing: .05em; color: #71717a; }
+button:focus-visible, select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(161,161,170,.45); }
+.bg-\[var\(--panel\)\] { border-color: #e4e4e7; border-radius: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+.pop-glass { border: 1px solid #e4e4e7; border-radius: 10px; box-shadow: 0 10px 15px -3px rgba(0,0,0,.1), 0 4px 6px -4px rgba(0,0,0,.1); }
+.seg-on { background: #fff; color: #09090b; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.login-glass .btn-primary { border-radius: 16px; background: #0f2a4d; border-color: #0f2a4d; }
