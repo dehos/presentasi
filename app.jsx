@@ -344,7 +344,6 @@ function Glass({ T, pct, h, total }) {
   const w = (a) => `rgba(255,255,255,${a})`;
   const edge = dk ? w(0.4) : 'rgba(90,120,165,0.35)';
   const fill = T.barFill || T.bars[1];
-  const showRp = h >= 90 && total > 0;
   const trackH = pct != null || noTarget ? base : 0;
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
@@ -355,7 +354,6 @@ function Glass({ T, pct, h, total }) {
         <div style={{ position: 'absolute', left: 'calc(14% + 2px)', right: 'calc(14% + 2px)', bottom: 1.5, height: bodyH - 1.5, background: fill, opacity: noTarget ? 0.7 : 0.94, boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.35)' }} />
       )}
       {trackH > 0 && <div style={{ position: 'absolute', left: 'calc(14% + 6px)', width: 5, bottom: 8, height: Math.max(0, trackH - 16), borderRadius: 5, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />}
-      {showRp && <div style={{ position: 'absolute', left: -6, right: -6, bottom: bodyH + 5, textAlign: 'center', fontSize: Math.min(16, Math.max(12, h / 17)), fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', lineHeight: 1 }}>{fmtCompact(total)}</div>}
     </div>
   );
 }
@@ -371,6 +369,9 @@ function MiniChart({ T, keys, st, h, short, pick, bid, bname, w }) {
       </div>
       <div style={{ display: 'flex', gap: 6, marginTop: 4, fontSize: 12, color: T.muted }}>
         {keys.map((k) => <div key={k} style={{ flex: 1, minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden' }}>{short(k)}</div>)}
+      </div>
+      <div style={{ display: 'flex', gap: 6, fontSize: 12, fontWeight: 700, color: T.ink, letterSpacing: '-0.03em' }}>
+        {st.map((x, i) => <div key={keys[i]} style={{ flex: 1, minWidth: 0, textAlign: 'center', whiteSpace: 'nowrap' }}>{x.total == null ? '–' : fmtCompact(x.total)}</div>)}
       </div>
     </div>
   );
@@ -392,7 +393,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
   const fs = Math.max(12, Math.min(roomy ? 18 : 15, Math.floor(rowH * 0.62)));
   const nameFs = ultra ? 16 : roomy ? 26 : rowsN >= 3 ? 19 : 22;
   const nameH = ultra ? 22 : roomy ? 34 : 26;
-  const pctW = roomy ? 66 : 44, trW = roomy ? 70 : 46;
+  const pctW = roomy ? 58 : 44, trW = roomy ? 64 : 46;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridAutoRows: cardH, gap }}>
       {sales.brands.map((b, bi) => {
@@ -419,15 +420,16 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
                 })}
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: roomy ? 16 : 8, alignItems: 'flex-start' }}>
-                <MiniChart T={T} keys={keys} st={st} h={Math.max(52, rowH * keys.length - 18)} short={short} pick={pick} bid={b.id} bname={b.name} w={roomy ? 122 : 84} />
+              <div style={{ display: 'flex', gap: roomy ? 12 : 8, alignItems: 'flex-start' }}>
+                <MiniChart T={T} keys={keys} st={st} h={Math.max(44, rowH * keys.length - 36)} short={short} pick={pick} bid={b.id} bname={b.name} w={roomy ? 126 : 84} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                 {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
               <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
-                style={{ display: 'flex', alignItems: 'center', gap: roomy ? 10 : 6, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
+                style={{ display: 'flex', alignItems: 'center', gap: roomy ? 6 : 6, height: rowH, fontSize: fs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                 <span style={{ width: roomy ? labW + 8 : labW, flex: 'none', color: T.muted }}>{short(k)}</span>
-                <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</span>
+                <span style={{ flex: 1 }} />
                 <span style={{ width: pctW, flex: 'none', textAlign: 'right' }}>{rowH >= 26 ? <PctBar small v={st[i].pct} sem={sem} muted={T.muted} /> : <Pct small v={st[i].pct} sem={sem} muted={T.muted} />}</span>
+                <span style={{ width: trW, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
               </Hit>
             ))}
                 </div>
@@ -488,14 +490,14 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                   ))}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6, fontSize: 15, color: T.muted }}>
-                  {keys.map((k, i) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center', lineHeight: 1.15 }}>{short(k)}<BigPct x={st[i]} sem={sem} muted={T.muted} /></div>)}
+                  {keys.map((k, i) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center', lineHeight: 1.15 }}>{short(k)}<div style={{ fontSize: 18, fontWeight: 700, color: T.ink, marginTop: 2, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</div></div>)}
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
                     <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                       <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
-                      <span style={{ flex: 1, minWidth: 0, textAlign: 'right', fontWeight: 600, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : compact ? fmtCompact(st[i].total) : rp(st[i].total)}</span>
+                      <span style={{ flex: 1 }} />
                       <span style={{ width: compact ? 58 : 70, flex: 'none', textAlign: 'right' }}><PctBar v={st[i].pct} sem={sem} muted={T.muted} /></span>
                       <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
                     </Hit>
