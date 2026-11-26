@@ -349,7 +349,7 @@ function Glass({ T, pct, h, total }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
       {trackH > 0 && (
-        <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: 0, height: trackH, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: pct == null ? 'none' : `1.5px dashed ${edge}`, background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)' }} />
+        <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: 0, height: trackH, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: 'none', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)' }} />
       )}
       {bodyH > 0 && (
         <div style={{ position: 'absolute', left: 'calc(14% + 2px)', right: 'calc(14% + 2px)', bottom: 1.5, height: bodyH - 1.5, background: fill, opacity: noTarget ? 0.7 : 0.94, boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.35)' }} />
