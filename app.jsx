@@ -613,7 +613,7 @@ function SumList({ T, sem, title, rows, mk }) {
       {rows.map((b, i) => (
         <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 31, fontSize: 18, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
           <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: T.nw || 600 }}>{b.name}</span>
-          <span style={{ color: T.muted, whiteSpace: 'nowrap', fontSize: 17 }}>{fmtCompact(b.total)}</span>
+          <span style={{ color: T.muted, whiteSpace: 'nowrap', fontSize: 17, width: 76, flex: 'none', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtCompact(b.total)}</span>
           <span style={{ width: 70, flex: 'none' }}><PctBar small v={b.pct} sem={sem} muted={T.muted} /></span>
         </div>
       ))}
@@ -676,9 +676,6 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
             {S.months.map((m) => <div key={m.k} style={{ flex: 1, maxWidth: 110, textAlign: 'center', lineHeight: 1.3 }}>{short(m.k)}<div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{m.total == null ? '–' : fmtCompact(m.total)}</div></div>)}
-          </div>
-          <div style={{ display: 'flex', gap: 22, marginTop: 8, fontSize: 15, color: T.muted }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
           </div>
           <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
             {[['Total penjualan', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian target', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren bulan terakhir', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
