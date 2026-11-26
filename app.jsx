@@ -674,7 +674,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
             {S.months.map((m) => <div key={m.k} style={{ flex: 1, maxWidth: 110, textAlign: 'center', lineHeight: 1.3 }}>{short(m.k)}<div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{m.total == null ? '–' : fmtCompact(m.total)}</div></div>)}
           </div>
           <div style={{ display: 'flex', gap: 22, marginTop: 8, fontSize: 15, color: T.muted }}>
