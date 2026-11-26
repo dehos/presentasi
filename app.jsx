@@ -336,21 +336,26 @@ function Hit({ pick, target, style, label, children, m, mt }) {
 /* Tabung kaca transparan: tinggi tabung = 100% target, isi cairan = capaian (tanpa garis ukur) */
 const isDarkT = (T) => { const m = /^#?([0-9a-f]{6})/i.exec(T.paper || ''); if (!m) return false; const n = parseInt(m[1], 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) < 110; };
 function Glass({ T, pct, h, total }) {
-  /* grafik candle: badan = omzet (tinggi relatif terhadap target), garis putus = target 100%, sumbu tipis = sisa menuju target, label Rp di atas badan */
-  const noTarget = pct == null && total > 0;
+  /* candle bergaya kaca: tabung kaca transparan = 0-100% target (atas terbuka), cairan = omzet, >100% menembus tepi atas; label Rp di atas */
+  const noTarget = pct == null && total > 0, dk = isDarkT(T);
   const base = h * 0.72, cap = 120;
   const p = noTarget ? 60 : pct == null ? 0 : Math.max(0, Math.min(cap, pct));
   const bodyH = p > 0 ? Math.max(3, (base * p) / 100) : 0;
-  const lineY = base;
-  const col = ((T.barFill || '').match(/#[0-9a-f]{6}/i) || [T.bars[1]])[0];
+  const w = (a) => `rgba(255,255,255,${a})`;
+  const edge = dk ? w(0.4) : 'rgba(90,120,165,0.35)';
+  const fill = T.barFill || T.bars[1];
   const showRp = h >= 90 && total > 0;
-  const showWick = pct != null && pct < 100 && bodyH > 0;
+  const trackH = pct != null || noTarget ? base : 0;
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
-      {pct != null && <div style={{ position: 'absolute', left: 0, right: 0, bottom: lineY, borderTop: `1.5px dashed ${T.muted}`, opacity: 0.55 }} />}
-      {showWick && <div style={{ position: 'absolute', left: 'calc(50% - 1px)', width: 2, bottom: bodyH + (showRp ? 22 : 0), height: Math.max(0, lineY - bodyH - (showRp ? 22 : 0)), background: T.muted, opacity: 0.45 }} />}
-      {bodyH > 0 && <div style={{ position: 'absolute', left: '18%', right: '18%', bottom: 0, height: bodyH, background: T.barFill || T.bars[1], opacity: noTarget ? 0.6 : 1, borderRadius: 2 }} />}
-      {showRp && <div style={{ position: 'absolute', left: -6, right: -6, bottom: bodyH + 4, textAlign: 'center', fontSize: Math.min(16, Math.max(12, h / 17)), fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', lineHeight: 1 }}>{fmtCompact(total)}</div>}
+      {trackH > 0 && (
+        <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: 0, height: trackH, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: pct == null ? 'none' : `1.5px dashed ${edge}`, background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)' }} />
+      )}
+      {bodyH > 0 && (
+        <div style={{ position: 'absolute', left: 'calc(14% + 2px)', right: 'calc(14% + 2px)', bottom: 1.5, height: bodyH - 1.5, background: fill, opacity: noTarget ? 0.7 : 0.94, boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.35)' }} />
+      )}
+      {trackH > 0 && <div style={{ position: 'absolute', left: 'calc(14% + 6px)', width: 5, bottom: 8, height: Math.max(0, trackH - 16), borderRadius: 5, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />}
+      {showRp && <div style={{ position: 'absolute', left: -6, right: -6, bottom: bodyH + 5, textAlign: 'center', fontSize: Math.min(16, Math.max(12, h / 17)), fontWeight: 700, color: T.ink, whiteSpace: 'nowrap', lineHeight: 1 }}>{fmtCompact(total)}</div>}
     </div>
   );
 }
