@@ -11,6 +11,7 @@ const SLIDE_THEMES = {
   korporat: { name: 'Korporat', paper: '#f4f6fa', ink: '#14213a', muted: '#5a6785', grid: '#dde2ec', axis: '#aeb7c8', header: '#12263f', headerFg: '#ffffff', headerSub: '#9FE1CB', cover: '#12263f', coverFg: '#ffffff', coverSub: '#9FE1CB', coverMuted: '#b4b8c4', accent: '#1D9E75', bars: ['#9FE1CB', '#1D9E75', '#0F6E56'], target: '#e0861c', targetText: '#b3690d', card: '#ffffff', deco: 'squares', hdrLine: '6px solid #1D9E75', cardR: 4, cardBorder: null, cardTop: '5px solid #1D9E75', barR: '0', coverBar: [14, 72, 0] },
   malam: { name: 'Malam neon', paper: '#17152e', ink: '#eeecfb', muted: '#9a96c4', grid: '#34305a', axis: '#4a4580', header: 'transparent', headerFg: '#ffffff', headerSub: '#b9a9ff', cover: '#17152e', coverFg: '#ffffff', coverSub: '#b9a9ff', coverMuted: '#9a96c4', accent: '#a995ff', bars: ['#5b4fb0', '#a995ff', '#5b4fb0'], target: '#ffb84d', targetText: '#ffb84d', card: 'rgba(255,255,255,0.06)', deco: 'rings', hdrLine: '3px solid #a995ff', cardR: 28, cardBorder: '1px solid #4a4580', cardTop: null, barR: '12px 12px 0 0', coverBar: [96, 4, 4] },
   pasir: { name: 'Editorial', paper: '#f4ece1', ink: '#2b2a28', muted: '#7d7468', grid: '#d9c9b3', axis: '#b9a68d', header: '#ebe0d0', headerFg: '#2b2a28', headerSub: '#7d7468', cover: '#f4ece1', coverFg: '#2b2a28', coverSub: '#c2603a', coverMuted: '#7d7468', accent: '#c2603a', bars: ['#e6b49c', '#c2603a', '#e6b49c'], target: '#2f6f8f', targetText: '#2f6f8f', card: '#fffaf3', deco: 'flat', hdrLine: '3px solid #2b2a28', cardR: 0, cardBorder: '2px solid #2b2a28', cardTop: null, barR: '0', coverBar: [140, 6, 0] },
+  neumorph: { name: 'Neumorph', font: "'Manrope', 'Inter', system-ui, sans-serif", headFont: "'Manrope', 'Inter', system-ui, sans-serif", hw: 700, nw: 700, neu: true, paper: '#dcebea', ink: '#0a6b66', muted: '#3f918b', grid: '#c3d9d7', axis: '#8fbdb9', header: 'transparent', headerFg: '#0a6b66', headerSub: '#3f918b', cover: '#dcebea', coverFg: '#0a6b66', coverSub: '#0d9488', coverMuted: '#3f918b', accent: '#0d9488', bars: ['#8fe3d8', '#14b8a6', '#8fe3d8'], barFill: 'linear-gradient(180deg, #2dd4bf 0%, #0d9488 100%)', sem: { good: '#0d9488', warn: '#b7791f', bad: '#d1453b' }, target: '#d97706', targetText: '#b45309', card: '#dcebea', shadow: '9px 9px 20px rgba(120,160,157,0.55), -9px -9px 20px rgba(255,255,255,0.95)', deco: 'none', hdrLine: 'none', cardR: 26, cardBorder: 'none', cardTop: null, barR: '8px 8px 0 0', coverBar: [96, 8, 4] },
 };
 /* nama tema lama dipetakan ke 4 model baru */
 const THEME_ALIAS = {  navy: 'langit', terang: 'langit', lautan: 'malam', remotion: 'malam', ungu: 'malam', navyteal: 'korporat', senja: 'pasir' };
@@ -253,7 +254,8 @@ const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 
 const semOf = (T) => (T.sem ? { ...T.sem, card: T.card } : lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
-const blurOf = (T) => (T.blur ? { backdropFilter: `blur(${T.blur}px)`, WebkitBackdropFilter: `blur(${T.blur}px)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 28px -12px rgba(0,0,0,0.55)' } : {});
+const blurOf = (T) => (T.shadow ? { boxShadow: T.shadow } : T.blur ? { backdropFilter: `blur(${T.blur}px)`, WebkitBackdropFilter: `blur(${T.blur}px)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 28px -12px rgba(0,0,0,0.55)' } : {});
+const NEU_IN = { border: 'none', boxShadow: 'inset 4px 4px 8px rgba(120,160,157,0.5), inset -4px -4px 8px rgba(255,255,255,0.95)' };
 const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
 
 /* Hiasan latar: bola 3D di belakang kartu kaca. Posisi, ukuran, dan warnanya acak per slide
@@ -282,6 +284,7 @@ function orbSpots(T, kind, seed) {
 }
 function Deco({ T, kind, seed }) {
   const model = T.deco || 'orbs';
+  if (model === 'none') return null;
   return orbSpots(T, kind, seed).map((o, i) => {
     const base = { position: 'absolute', left: Math.round(o.x), top: Math.round(o.y), width: Math.round(o.s), height: Math.round(o.s), zIndex: -1, pointerEvents: 'none' };
     let st;
@@ -348,12 +351,12 @@ function Glass({ T, pct, h, total }) {
   return (
     <div style={{ position: 'relative', width: '100%', height: h }}>
       {trackH > 0 && (
-        <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: 0, height: trackH, boxSizing: 'border-box', border: `1.5px solid ${edge}`, borderTop: 'none', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)' }} />
+        <div style={{ position: 'absolute', left: '14%', right: '14%', bottom: 0, height: trackH, boxSizing: 'border-box', ...(T.neu ? { border: 'none', background: 'transparent', boxShadow: 'inset 4px 4px 8px rgba(120,160,157,0.6), inset -4px -4px 8px rgba(255,255,255,0.95)' } : { border: `1.5px solid ${edge}`, borderTop: 'none', background: dk ? `linear-gradient(90deg, ${w(0.22)}, ${w(0.04)} 30%, ${w(0.02)} 70%, ${w(0.15)})` : `linear-gradient(90deg, ${w(0.75)}, ${w(0.2)} 30%, ${w(0.1)} 70%, ${w(0.55)})`, boxShadow: dk ? 'inset 0 0 14px rgba(255,255,255,0.18), 0 12px 20px -8px rgba(0,0,0,0.6)' : 'inset 0 0 14px rgba(255,255,255,0.7), 0 10px 18px -8px rgba(20,50,90,0.35)' }) }} />
       )}
       {bodyH > 0 && (
         <div style={{ position: 'absolute', left: 'calc(14% + 2px)', right: 'calc(14% + 2px)', bottom: 1.5, height: bodyH - 1.5, background: fill, opacity: noTarget ? 0.7 : 0.94, boxShadow: 'inset 0 2px 0 rgba(255,255,255,0.35)' }} />
       )}
-      {trackH > 0 && <div style={{ position: 'absolute', left: 'calc(14% + 6px)', width: 5, bottom: 8, height: Math.max(0, trackH - 16), borderRadius: 5, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />}
+      {trackH > 0 && !T.neu && <div style={{ position: 'absolute', left: 'calc(14% + 6px)', width: 5, bottom: 8, height: Math.max(0, trackH - 16), borderRadius: 5, background: `linear-gradient(180deg, ${w(0.85)}, ${w(0.1)})` }} />}
     </div>
   );
 }
@@ -627,7 +630,7 @@ function CombinedSummary({ sales, keys, T, sem }) {
       <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 8 }}>Kesimpulan</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         {[['Total', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
-          <div key={l} style={{ flex: l === 'Capaian' ? 0.5 : 1.25, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
+          <div key={l} style={{ flex: l === 'Capaian' ? 0.5 : 1.25, minWidth: 0, ...(T.neu ? NEU_IN : { border: `1px solid ${T.grid}` }), borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
             <div style={{ fontSize: 13, color: T.muted }}>{l}</div>
             <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, color: c, whiteSpace: 'nowrap' }}>{v}</div>
           </div>
@@ -698,7 +701,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 10 }}>Kesimpulan</div>
           <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
             {[['Total pencapaian', S.any ? rp(String(Math.round(S.total))) : '–', T.ink, 18], ['Total target', S.target ? rp(String(Math.round(S.target))) : '–', T.ink, 18], ['Capaian', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct), 26]].map(([l, v, c, f]) => (
-              <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
+              <div key={l} style={{ flex: 1, minWidth: 0, ...(T.neu ? NEU_IN : { border: `1px solid ${T.grid}` }), borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
                 <div style={{ fontSize: 13, color: T.muted, whiteSpace: 'nowrap' }}>{l}</div>
                 <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: f, color: c, whiteSpace: 'nowrap' }}>{v}</div>
               </div>
@@ -756,7 +759,7 @@ function CanvasSlide({ item, deck, n, total }) {
           <div style={{ gridColumn: '1 / -1', height: 232, display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 24 }}>Belum ada hasil canvasing</div>
         )}
         {item.entries.map((e, i) => (
-          <div key={e.id} data-m={`card-${i}`} style={{ ...GLASS, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: 16, boxSizing: 'border-box', display: 'flex', gap: 18, minWidth: 0, overflow: 'hidden' }}>
+          <div key={e.id} data-m={`card-${i}`} style={{ ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: 16, boxSizing: 'border-box', display: 'flex', gap: 18, minWidth: 0, overflow: 'hidden' }}>
             {e.foto
               ? <img src={e.foto} alt={'Foto canvasing ' + e.kontraktor} style={{ width: 196, height: 196, objectFit: 'cover', borderRadius: Math.min(T.cardR, 14), flex: 'none' }} />
               : <div style={{ width: 196, height: 196, flex: 'none', borderRadius: Math.min(T.cardR, 14), border: `2px dashed ${T.axis}`, boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', color: T.muted, fontSize: 16 }}>Tanpa foto</div>}
