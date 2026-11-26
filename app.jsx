@@ -449,11 +449,11 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
   const nb = sales.brands.length;
   const compact = nb > 3 || combined;
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
-  const dense = nb >= 5 || (nb === 4 && crossYear);
+  const dense = false;
   const chartH = keys.length <= 3 ? 215 : keys.length <= 4 ? 175 : 140;
   const rowH = keys.length <= 3 ? 42 : keys.length <= 4 ? 38 : 33;
-  const rowFs = nb > 4 ? 15 : compact ? 16 : 17;
-  const labW = (compact ? 38 : 48) + (crossYear ? 18 : 0);
+  const rowFs = nb > 4 ? 14 : nb > 3 ? 15 : compact ? 16 : 17;
+  const labW = (nb > 4 ? 28 : compact ? 38 : 48) + (crossYear ? 18 : 0);
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
@@ -473,11 +473,11 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         <div style={combined ? { display: 'flex', gap: 16, alignItems: 'stretch' } : undefined}>
         <div style={combined ? { flex: '1 1 0', minWidth: 0 } : undefined}>
         {dense ? <DenseGrid sales={sales} keys={keys} T={T} sem={sem} pick={pick} short={short} labW={crossYear ? 52 : 32} /> : (
-        <div style={{ display: 'flex', gap: 16 }}>
+        <div style={{ display: 'flex', gap: nb > 3 ? 10 : 16 }}>
           {sales.brands.map((b, bi) => {
             const st = keys.map((k) => statsOf(sales, k, b.id, keys));
             return (
-              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 18px' }}>
+              <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
                 <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {b.name || 'Nama brand'}
                 </Hit>
@@ -490,16 +490,15 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                   ))}
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 6, fontSize: 15, color: T.muted }}>
-                  {keys.map((k, i) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center', lineHeight: 1.15 }}>{short(k)}<div style={{ fontSize: 18, fontWeight: 700, color: T.ink, marginTop: 2, whiteSpace: 'nowrap' }}>{st[i].total == null ? '–' : fmtCompact(st[i].total)}</div></div>)}
+                  {keys.map((k) => <div key={k} style={{ flex: 1, maxWidth: 76, textAlign: 'center', lineHeight: 1.15 }}>{short(k)}</div>)}
                 </div>
                 <div style={{ marginTop: 10 }}>
                   {keys.map((k, i) => [k, i]).reverse().map(([k, i], pos) => (
                     <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
                       style={{ display: 'flex', alignItems: 'center', gap: 8, height: rowH, fontSize: rowFs, borderTop: pos ? `1px solid ${T.grid}` : 'none' }}>
                       <span style={{ width: labW, flex: 'none', color: T.muted }}>{short(k)}</span>
-                      <span style={{ flex: 1 }} />
-                      <span style={{ width: compact ? 58 : 70, flex: 'none', textAlign: 'right' }}><PctBar v={st[i].pct} sem={sem} muted={T.muted} /></span>
-                      <span style={{ width: compact ? 68 : 80, flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
+                      <span style={{ flex: 1, minWidth: 0, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}><span style={{ fontSize: '0.8em', fontWeight: 500, color: T.muted, marginRight: 3 }}>Rp</span>{st[i].total == null ? '–' : dot(String(Math.round(st[i].total)))}</span>
+                      <span style={{ flex: 'none', textAlign: 'right' }}>{i === 0 ? null : <Trend v={st[i].trend} sem={sem} muted={T.muted} />}</span>
                     </Hit>
                   ))}
                 </div>
@@ -512,9 +511,8 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
         {combined && <CombinedSummary sales={sales} keys={keys} T={T} sem={sem} />}
         </div>
         <div data-m="legend" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '4px 28px', marginTop: 10, fontSize: 15, color: T.muted }}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 14, height: 14, borderRadius: 3, background: T.barFill || T.bars[1] }} />Total penjualan</span>
-          <span>% = capaian dari target</span>
-          {!dense && <span>▲ ▼ = dibanding bulan sebelumnya</span>}
+          <span>Tinggi gelas = capaian dari target</span>
+          <span>▲ ▼ = dibanding bulan sebelumnya</span>
         </div>
       </div>
 
@@ -712,7 +710,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
 
 /* ===== Canvasing: slide hasil kunjungan, 4 kartu per halaman ===== */
 const CANVAS_PER_PAGE = 4, CANVAS_MAX = 250;
-const BRANDS_PER_SLIDE = 6;
+const BRANDS_PER_SLIDE = 5;
 const salesPages = (s) => {
   const n = Math.max(1, Math.ceil(s.brands.length / BRANDS_PER_SLIDE)), base = Math.floor(s.brands.length / n), rem = s.brands.length % n;
   const pg = Array.from({ length: n }, (_, p) => ({ kind: 'sales', sales: s, key: p ? s.id + '-p' + p : s.id, page: p, pages: n, brands: s.brands.slice(Math.min(p, rem) * (base + 1) + Math.max(0, p - rem) * base, Math.min(p, rem) * (base + 1) + Math.max(0, p - rem) * base + base + (p < rem ? 1 : 0)) }));
