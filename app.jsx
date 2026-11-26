@@ -607,10 +607,10 @@ function summaryLines(S, best, low) {
 }
 function SumList({ T, sem, title, rows, mk }) {
   return (
-    <div data-m={mk} style={{ marginTop: 10 }}>
+    <div data-m={mk} style={{ marginTop: 6 }}>
       <div style={{ fontSize: 15, color: T.muted, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
       {rows.map((b, i) => (
-        <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 31, fontSize: 18, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
+        <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 12, height: 28, fontSize: 18, borderTop: i ? `1px solid ${T.grid}` : 'none' }}>
           <span style={{ flex: 1, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: T.nw || 600 }}>{b.name}</span>
           <span style={{ color: T.muted, whiteSpace: 'nowrap', fontSize: 17, width: 76, flex: 'none', textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{fmtCompact(b.total)}</span>
           <span style={{ width: 70, flex: 'none' }}><PctBar small v={b.pct} sem={sem} muted={T.muted} /></span>
@@ -627,7 +627,7 @@ function CombinedSummary({ sales, keys, T, sem }) {
       <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 8 }}>Kesimpulan</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
         {[['Total', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
-          <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
+          <div key={l} style={{ flex: l === 'Capaian' ? 0.5 : 1.25, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
             <div style={{ fontSize: 13, color: T.muted }}>{l}</div>
             <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, color: c, whiteSpace: 'nowrap' }}>{v}</div>
           </div>
@@ -665,29 +665,46 @@ function SummarySlide({ sales, deck, n, total, pick }) {
 
       <div style={{ padding: '22px 48px 0', display: 'flex', gap: 16, alignItems: 'stretch' }}>
         <div data-m="card-0" style={{ ...card, flex: '0 0 560px', height: 480 }}>
-          <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 12 }}>Total semua brand per bulan</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 16, height: chartH }}>
+          <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 12 }}>Target dan pencapaian per bulan</div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: chartH }}>
             {S.months.map((m) => (
-              <div key={m.k} style={{ flex: 1, maxWidth: 110, height: chartH }}>
-                <Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} total={m.total} h={chartH} />
+              <div key={m.k} style={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'center', height: chartH }}>
+                <div style={{ width: '100%', maxWidth: 90 }}><Glass T={T} pct={m.target ? ((m.total || 0) / m.target) * 100 : null} total={m.total} h={chartH} /></div>
               </div>
             ))}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 6, fontSize: 16, color: T.muted }}>
-            {S.months.map((m) => <div key={m.k} style={{ flex: 1, maxWidth: 110, textAlign: 'center', lineHeight: 1.3 }}>{short(m.k)}<div style={{ fontSize: 15, color: T.ink, fontWeight: 600 }}>{m.total == null ? '–' : fmtCompact(m.total)}</div></div>)}
-          </div>
-          <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
-            {[['Total penjualan', S.any ? fmtCompact(S.total) : '–', T.ink], ['Capaian target', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct)], ['Tren bulan terakhir', S.trend == null ? '–' : (Math.abs(S.trend) < 0.05 ? '' : S.trend > 0 ? '▲ ' : '▼ ') + fmt1(Math.abs(S.trend)) + '%', S.trend == null ? T.muted : S.trend >= 0 ? sem.good : sem.bad]].map(([l, v, c]) => (
-              <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '10px 12px' }}>
-                <div style={{ fontSize: 14, color: T.muted, whiteSpace: 'nowrap' }}>{l}</div>
-                <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 30, color: c, whiteSpace: 'nowrap' }}>{v}</div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            {S.months.map((m, i) => {
+              const mp = m.target ? ((m.total || 0) / m.target) * 100 : null, pv = i > 0 ? S.months[i - 1] : null;
+              const tr = m.total != null && pv && pv.total ? ((m.total - pv.total) / pv.total) * 100 : null;
+              const rpFs = S.months.length > 4 ? 11 : S.months.length > 3 ? 14 : 16;
+              const lab = { fontSize: 11, color: T.muted, textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 6 };
+              const num = (v) => (v == null ? '–' : <><span style={{ fontSize: '0.8em', fontWeight: 500, color: T.muted, marginRight: 2 }}>Rp</span>{dot(String(Math.round(v)))}</>);
+              return (
+                <div key={m.k} style={{ flex: 1, minWidth: 0, textAlign: 'center', lineHeight: 1.2 }}>
+                  <div style={{ fontSize: 16, color: T.muted }}>{short(m.k)}</div>
+                  <div style={{ fontFamily: T.headFont || headFont, fontWeight: 800, fontSize: S.months.length > 4 ? 22 : 30, color: pc(mp), letterSpacing: '-0.02em', margin: '2px 0 4px', whiteSpace: 'nowrap' }}>{mp == null ? '–' : fmt1(mp) + '%'}</div>
+                  <div style={lab}>Pencapaian</div>
+                  <div style={{ fontSize: rpFs, fontWeight: 700, whiteSpace: 'nowrap' }}>{num(m.total)}</div>
+                  <div style={lab}>Target</div>
+                  <div style={{ fontSize: rpFs - 1, color: T.muted, whiteSpace: 'nowrap' }}>{num(m.target)}</div>
+                  <div style={{ marginTop: 6, height: 20 }}>{tr != null && Math.abs(tr) >= 0.05 ? <Trend v={tr} sem={sem} muted={T.muted} /> : null}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
         <div data-m="card-1" style={{ ...card, flex: 1, minWidth: 0, height: 480 }}>
           <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 10 }}>Kesimpulan</div>
-          <div style={{ fontSize: 19, lineHeight: 1.4 }}>{lines.map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
+          <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+            {[['Total pencapaian', S.any ? rp(String(Math.round(S.total))) : '–', T.ink, 18], ['Total target', S.target ? rp(String(Math.round(S.target))) : '–', T.ink, 18], ['Capaian', S.pct == null ? '–' : Math.round(S.pct) + '%', pc(S.pct), 26]].map(([l, v, c, f]) => (
+              <div key={l} style={{ flex: 1, minWidth: 0, border: `1px solid ${T.grid}`, borderRadius: Math.round(T.cardR * 0.6), padding: '6px 10px' }}>
+                <div style={{ fontSize: 13, color: T.muted, whiteSpace: 'nowrap' }}>{l}</div>
+                <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: f, color: c, whiteSpace: 'nowrap' }}>{v}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 19, lineHeight: 1.4 }}>{(S.any ? lines.slice(1) : lines).map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
           {best.length > 0 && <SumList T={T} sem={sem} mk="sum-best" title="Capaian tertinggi" rows={best} />}
           {low.length > 0 && <SumList T={T} sem={sem} mk="sum-low" title="Perlu perhatian" rows={low} />}
         </div>
