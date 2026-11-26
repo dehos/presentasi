@@ -1126,6 +1126,12 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                 );
               })}
               {s.brands.length > BRANDS_PER_SLIDE && <p className="m-0 text-xs text-[var(--muted)]">{`Brand dibagi rata ke ${Math.ceil(s.brands.length / BRANDS_PER_SLIDE)} slide.`}</p>}
+              {!ro && api.undoDel && api.undoDel.sid === s.id && (
+                <button type="button" onClick={api.undoDelBrand} aria-label="Batal hapus brand" className="btn mx-auto !rounded-lg !px-3 !py-1.5 text-xs">
+                  <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
+                  Batal hapus{api.undoDel.brand && api.undoDel.brand.name ? ` ${api.undoDel.brand.name}` : ''}
+                </button>
+              )}
               <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-black shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
               {!ro && <button type="button" className="btn btn-primary" onClick={onSave}>Simpan</button>}
             </section>
@@ -1500,6 +1506,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
 
   const [sync, setSync] = useState(isAdmin ? 'memuat' : 'tersimpan');
   const [dlg, setDlg] = useState(null);
+  const [undoDel, setUndoDel] = useState(null);
   const [showAct, setShowAct] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
   const [showRange, setShowRange] = useState(false);
@@ -1633,12 +1640,30 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     }),
     addBrand: (sid) => mapSales(sid, (s) => ({ ...s, brands: [...s.brands, mkBrand('BRAND ' + String.fromCharCode(65 + (s.brands.length % 26)))] })),
     clearCell: (sid, key, bid) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { total: '', target: '', skip: true } } } })),
-    delBrand: (sid, bid) => mapSales(sid, (s) => {
-      if (s.brands.length <= 1) return s;
-      const data = {};
-      Object.keys(s.data || {}).forEach((k) => { const { [bid]: _x, ...rest } = s.data[k]; data[k] = rest; });
-      return { ...s, brands: s.brands.filter((x) => x.id !== bid), data };
-    }),
+    undoDel,
+    delBrand: (sid, bid) => {
+      const s0 = deck.sales.find((x) => x.id === sid);
+      if (!s0 || s0.brands.length <= 1) return;
+      const cells = {};
+      Object.keys(s0.data || {}).forEach((k) => { if (s0.data[k] && s0.data[k][bid]) cells[k] = s0.data[k][bid]; });
+      setUndoDel({ sid, brand: s0.brands.find((x) => x.id === bid), index: s0.brands.findIndex((x) => x.id === bid), cells });
+      mapSales(sid, (s) => {
+        const data = {};
+        Object.keys(s.data || {}).forEach((k) => { const { [bid]: _x, ...rest } = s.data[k]; data[k] = rest; });
+        return { ...s, brands: s.brands.filter((x) => x.id !== bid), data };
+      });
+    },
+    undoDelBrand: () => {
+      const u = undoDel; if (!u) return;
+      mapSales(u.sid, (s) => {
+        if (s.brands.some((x) => x.id === u.brand.id)) return s;
+        const brands = [...s.brands]; brands.splice(Math.min(u.index, brands.length), 0, u.brand);
+        const data = { ...s.data };
+        Object.keys(u.cells).forEach((k) => { data[k] = { ...(data[k] || {}), [u.brand.id]: u.cells[k] }; });
+        return { ...s, brands, data };
+      });
+      setUndoDel(null);
+    },
   };
 
   const addSales = () => {
