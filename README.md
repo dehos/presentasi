@@ -22,7 +22,7 @@ Editor slide laporan penjualan. Satu slide untuk satu sales, dengan nama bulan, 
 - Data dan tema tersimpan otomatis di database Supabase (tabel `lp_deck`); admin memakai cadangan di browser (localStorage)
 
 - Di tabel angka tiap brand, bulan terbaru berada di baris paling atas (bar grafik tetap urut dari bulan awal ke akhir)
-- Admin: menu Data → **Rentang bulan** mengubah rentang yang langsung dipakai semua slide sales, ringkasan, dan export
+- Admin: tombol Menu → **Rentang bulan** mengubah rentang yang langsung dipakai semua slide sales, ringkasan, dan export
 
 - Login admin memakai username (**Toni**), bukan email; Toni tidak muncul di daftar login sales
 - Tombol **Download** (PPTX) hanya untuk admin; tombol **Lihat Presentasi** untuk semua
@@ -44,14 +44,14 @@ Setiap objek bernama sama antar slide dengan awalan `!!` (`!!title`, `!!sub`, `!
 - Grafik bulanan bergaya kaca: tabung transparan = 100% target, cairan = omzet (tanpa angka di dalam gelas), nama bulan di bawah gelas. Di bawahnya satu baris per bulan: nominal Rp utuh dan panah naik/turun (bulan pertama tanpa panah). Brand lebih dari 5 dibagi rata ke beberapa slide (6 = 3 + 3, 10 = 5 + 5)
 - Download PPTX menyematkan font (Inter, Manrope, Montserrat, Space Grotesk dari folder `fonts/`) supaya tampilan di PowerPoint sama dengan web; kalau PowerPoint (mis. versi Mac) tidak memakai font sematan, instal font tersebut
 - Bola 3D di latar slide acak per slide (di-seed dari id slide, jadi tetap sama di editor, presentasi, dan export).
-- Admin: menu Data → **Atur urutan sales** (seret baris atau tombol panah).
+- Admin: tombol Menu → **Atur urutan sales** (seret baris atau tombol panah).
 - Sales: saat masuk langsung membuka slide miliknya (ditandai "Saya"), presentasi dimulai dari slide itu, dan tombol "Slide saya" kembali ke sana.
 
 ## Login dan hak akses
 
 - **Admin**: login Supabase Auth (email + password). Hanya email yang terdaftar di tabel `lp_admin` yang boleh membaca dan menulis tabel `lp_deck`. Admin bisa mengubah semuanya.
 - **Sales**: pilih nama dari dropdown (diambil dari nama di slide), password = nama huruf kecil tanpa spasi + `123` (contoh: `toni123`). Sales bisa melihat semua slide dan presentasi, tetapi hanya bisa mengubah slide miliknya sendiri (nama, rentang bulan, tema, dan slide sales lain terkunci).
-- **Riwayat dan progres** (menu Data, khusus admin): siapa yang masuk atau keluar, apa yang diedit (nilai lama → baru) beserta jamnya, dan progres pengisian omzet dan target tiap sales per bulan. Edit beruntun dalam 5 menit digabung jadi satu entri. Disimpan di tabel `lp_activity`.
+- **Riwayat dan progres** (tombol Menu, khusus admin): siapa yang masuk atau keluar, apa yang diedit (nilai lama → baru) beserta jamnya, dan progres pengisian omzet dan target tiap sales per bulan. Edit beruntun dalam 5 menit digabung jadi satu entri. Disimpan di tabel `lp_activity`.
 - Keluar akun memakai dialog konfirmasi; masuk, keluar, dan gagal masuk menampilkan toast. Bila simpan gagal, aplikasi mencoba lagi otomatis tiap 6 detik.
 - Aturan ini ditegakkan di database (fungsi `lp_sales_login`, `lp_sales_save`, `lp_sales_names`, dan RLS), bukan hanya di tampilan.
 - Menambah admin: tambahkan emailnya ke tabel `lp_admin` (akun harus sudah ada di Supabase Auth).

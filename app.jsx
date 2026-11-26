@@ -1117,9 +1117,9 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                     {!ro && (
                       <div className="flex items-center gap-2 border-t border-black/10 pt-3">
                         <button type="button" className="btn flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={!!c.skip}
-                          onClick={() => ask({ title: `Hapus ${mName} untuk ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dihapus. Bulan lain dan brand tetap.`, confirm: 'Hapus bulan ini', onConfirm: () => api.clearCell(s.id, ck, b.id) })}>Hapus bulan ini</button>
+                          onClick={() => ask({ title: `Hapus ${mName} untuk ${b.name || 'brand ini'}?`, body: `Total dan target ${mName} ${parseKey(ck).y} pada slide ${s.name || 'ini'} akan dihapus. Bulan lain dan brand tetap.`, confirm: 'Hapus bulan ini', onConfirm: () => api.clearCell(s.id, ck, b.id) })}><svg className="h-4 w-4 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2" /><path d="M8 2v4M16 2v4M3 10h18M10 14l4 4M14 14l-4 4" /></svg><span className="hidden sm:inline">Hapus bulan ini</span><span className="sr-only sm:hidden">Hapus bulan ini</span></button>
                         <button type="button" className="btn btn-danger flex-1 !rounded-lg !px-3 !py-1.5 text-xs" disabled={s.brands.length === 1}
-                          onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}>Hapus brand</button>
+                          onClick={() => ask({ title: `Hapus brand ${b.name || 'ini'}?`, body: `Brand ini dan angkanya di semua bulan pada slide ${s.name || 'ini'} akan dihapus.`, confirm: 'Hapus brand', onConfirm: () => api.delBrand(s.id, b.id) })}><svg className="h-4 w-4 sm:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14M10 11v6M14 11v6" /></svg><span className="hidden sm:inline">Hapus brand</span><span className="sr-only sm:hidden">Hapus brand</span></button>
                       </div>
                     )}
                   </div>
@@ -1129,7 +1129,7 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
               {!ro && api.undoDel && api.undoDel.sid === s.id && (
                 <button type="button" onClick={api.undoDelBrand} aria-label="Batal hapus brand" className="btn mx-auto !rounded-lg !px-3 !py-1.5 text-xs">
                   <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></svg>
-                  Batal hapus{api.undoDel.brand && api.undoDel.brand.name ? ` ${api.undoDel.brand.name}` : ''}
+                  <span className="sr-only sm:not-sr-only">Batal hapus{api.undoDel.brand && api.undoDel.brand.name ? ` ${api.undoDel.brand.name}` : ''}</span>
                 </button>
               )}
               <button type="button" disabled={ro} onClick={() => api.addBrand(s.id)} className="mx-auto h-10 w-2/5 rounded-xl border border-gray-100 bg-white text-sm font-bold text-black shadow-md transition hover:shadow-lg active:scale-[0.98] disabled:opacity-50">+ Brand</button>
@@ -1171,7 +1171,7 @@ const TOP_BTN = 'inline-flex items-center gap-2 rounded-lg border border-[var(--
 const Chevron = ({ cls }) => <svg className={cls || 'h-4 w-4 text-[var(--muted)]'} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>;
 const ChevronRight = () => <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>;
 const PlayIcon = () => <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.5v13a1 1 0 001.5.86l11-6.5a1 1 0 000-1.72l-11-6.5A1 1 0 008 5.5z" /></svg>;
-const DataIcon = () => <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3" /><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" /></svg>;
+const MenuIcon = () => <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" /></svg>;
 const Swatch = ({ T }) => <span className="inline-block h-4 w-4 shrink-0 rounded-full ring-1 ring-black/15" style={{ background: `linear-gradient(135deg, ${T.paper} 50%, ${T.accent} 50%)` }} />;
 
 function Menu({ icon, label, children, width }) {
@@ -1686,29 +1686,12 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setDeck((d) => ({ ...d, sales: arr }));
     setIdx(itemIndexOf({ sales: arr }, cur.sales.id));
   };
-  const fillSample = () => setDeck((d) => {
-    const keys = monthsOf(d);
-    return { ...d, sales: d.sales.map((s) => {
-      const data = { ...(s.data || {}) };
-      s.brands.forEach((b) => {
-        const base = (20 + Math.round(Math.random() * 80)) * 100000;
-        const target = Math.round((base * 1.1) / 500000) * 500000;
-        keys.forEach((k) => {
-          const total = Math.max(1000000, Math.round((base * (0.8 + Math.random() * 0.4)) / 100000) * 100000);
-          data[k] = { ...(data[k] || {}), [b.id]: { total: String(total), target: String(target) } };
-        });
-      });
-      return { ...s, data };
-    }) };
-  });
-  const clearNums = () => setDeck((d) => ({ ...d, sales: d.sales.map((s) => ({ ...s, data: {} })) }));
   const reorderSales = (a, b) => {
     if (a === b || a < 0 || b < 0 || a >= deck.sales.length || b >= deck.sales.length) return;
     const arr = [...deck.sales]; const [m] = arr.splice(a, 1); arr.splice(b, 0, m);
     if (cur.kind === 'sales') setIdx(itemIndexOf({ sales: arr }, cur.sales.id));
     setDeck((d) => ({ ...d, sales: arr }));
   };
-  const resetAll = () => { setDeck(DEFAULT); setIdx(1); };
 
   useEffect(() => {
     if (presenting) return;
@@ -1760,7 +1743,6 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     if (b && b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
   }, [safeIdx]);
 
-  const hasData = deck.sales.some((s) => Object.keys(s.data || {}).length > 0);
   const syncDot = sync === 'tersimpan' ? 'bg-emerald-500' : sync === 'menyimpan' ? 'bg-amber-500' : sync === 'gagal' ? 'bg-red-500' : 'bg-slate-400';
   const syncText = sync === 'tersimpan' ? 'Tersimpan di database' : sync === 'menyimpan' ? 'Menyimpan…' : sync === 'gagal' ? 'Belum tersambung ke database' : 'Memuat…';
   const curTheme = themeOf(deck);
@@ -1798,16 +1780,10 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
               <MenuItem key={k} icon={<Swatch T={t} />} title={t.name} active={k === (THEME_ALIAS[deck.slideTheme] || deck.slideTheme)} onClick={() => api.setSlideTheme(k)} />
             ))}
           </Menu>}
-          {isAdmin && <Menu icon={<DataIcon />} label={<span className="sr-only sm:not-sr-only">Data</span>} width={288}>
+          {isAdmin && <Menu icon={<MenuIcon />} label={<span className="sr-only sm:not-sr-only">Menu</span>} width={288}>
             <MenuItem title="Rentang bulan" hint={`${rangeText(deck)} · berlaku untuk semua slide`} onClick={() => setShowRange(true)} />
             <MenuItem title="Atur urutan sales" hint="Ubah urutan slide sales dengan seret atau panah" onClick={() => setShowOrder(true)} />
             <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
-            <MenuItem title="Isi data contoh" hint="Angka acak untuk melihat tampilan slide"
-              onClick={() => (hasData ? ask({ title: 'Isi data contoh?', body: 'Total dan target yang sudah ada pada bulan di rentang ini akan diganti angka acak.', confirm: 'Isi data contoh', onConfirm: fillSample }) : fillSample())} />
-            <MenuItem danger title="Kosongkan semua angka" hint="Hapus total dan target, nama tetap"
-              onClick={() => ask({ title: 'Kosongkan semua angka?', body: 'Total dan target semua sales di semua bulan akan dihapus. Nama sales dan brand tetap.', confirm: 'Kosongkan', onConfirm: clearNums })} />
-            <MenuItem danger title="Setel ulang" hint="Kembali ke data awal"
-              onClick={() => ask({ title: 'Setel ulang semua data?', body: 'Semua sales, brand, angka, dan catatan kembali ke data awal.', confirm: 'Setel ulang', onConfirm: resetAll })} />
           </Menu>}
           {isAdmin && (
           <button type="button" className={TOP_BTN} onClick={doExport} disabled={!!exporting} title="Download semua slide sebagai file PowerPoint (.pptx)">
@@ -1815,8 +1791,8 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </button>
           )}
           <button type="button" onClick={() => setPresenting(true)}
-            className="btn btn-primary">
-            <PlayIcon /><span className="sm:hidden">Lihat</span><span className="hidden sm:inline">Lihat Presentasi</span>
+            className="btn btn-primary" title="Lihat presentasi">
+            <PlayIcon /><span className="sr-only sm:not-sr-only">Lihat Presentasi</span>
           </button>
           <button type="button" className={TOP_BTN} onClick={leave} title="Keluar dari akun">
             <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" /></svg><span className="sr-only sm:not-sr-only">Keluar</span>
@@ -1834,7 +1810,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
                 <div className="text-xs mt-1 truncate text-[var(--muted)]">{i + 1}. {labelOf(it)}{!isAdmin && isMine(it) && <span className="ml-1 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">Saya</span>}</div>
               </button>
             ))}
-            {isAdmin && <button className="btn shrink-0 w-28 lg:w-full" onClick={addSales}>+ Sales</button>}
+            {isAdmin && <button className="btn shrink-0 lg:w-full" onClick={addSales} title="Tambah sales" aria-label="Tambah sales"><svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg><span className="hidden sm:inline">Sales</span></button>}
             {!isAdmin && <button className="btn shrink-0 w-28 lg:w-full" onClick={() => { const i = items.findIndex(isMine); if (i >= 0) setIdx(i); }}>Slide saya</button>}
           </nav>
           {moreRail && (
