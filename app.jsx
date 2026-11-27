@@ -1,4 +1,4 @@
-const { useState, useEffect, useLayoutEffect, useRef, useCallback } = React;
+const { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } = React;
 
 const W = 1280, H = 720;
 const GHOST = [0.35, 0.5, 0.42, 0.6, 0.45, 0.55, 0.4, 0.52, 0.48];
@@ -336,7 +336,8 @@ function Trend({ v, sem, muted, small }) {
 }
 
 const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
-const logoOf = (name) => BRAND_LOGOS[String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')] || null;
+const brandKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const logoOf = (name, deck) => { const k = brandKey(name); return (deck && deck.logos && deck.logos[k]) || BRAND_LOGOS[k] || null; };
 function Hit({ pick, target, style, label, children, m, mt }) {
   if (!pick) return <div data-m={m} data-mt={mt} style={style}>{children}</div>;
   return (
@@ -491,12 +492,18 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
             const st = keys.map((k) => statsOf(sales, k, b.id, keys));
             return (
               <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
+                {(() => {
+                  const lg = deck && deck.logoOn === false ? null : logoOf(b.name, deck);
+                  const showName = !(deck && deck.nameOn === false) || !lg;
+                  return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, minHeight: 44 }}>
-                  {logoOf(b.name) && <span style={{ flex: 'none', maxWidth: '48%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={logoOf(b.name)} alt={b.name} style={{ maxHeight: 32, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
-                  <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: logoOf(b.name) ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {lg && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={lg} alt={b.name} style={{ maxHeight: showName ? 32 : 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
+                  {showName && <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: lg ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {b.name || 'Nama brand'}
-                  </Hit>
+                  </Hit>}
                 </div>
+                  );
+                })()}
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH }}>
                   {st.map((x, i) => (
                     <Hit key={keys[i]} pick={pick} target={{ month: keys[i], id: `v-${b.id}-${keys[i]}` }} label={`Isi ${b.name} ${BULAN[parseKey(keys[i]).m]}`}
@@ -1396,6 +1403,101 @@ function OrderModal({ deck, onReorder, onClose }) {
   );
 }
 
+/* Logo brand: hanya admin. Gambar diperkecil dan dipangkas di browser, disimpan di data deck per nama brand (deck.logos). */
+function trimLogo(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try {
+        const w0 = img.naturalWidth, h0 = img.naturalHeight, sc0 = Math.min(1, 1200 / Math.max(w0, h0));
+        const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w0 * sc0)); c.height = Math.max(1, Math.round(h0 * sc0));
+        const x = c.getContext('2d', { willReadFrequently: true }); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height); x.drawImage(img, 0, 0, c.width, c.height);
+        const d = x.getImageData(0, 0, c.width, c.height).data;
+        let x0 = c.width, y0 = c.height, x1 = -1, y1 = -1;
+        for (let y = 0; y < c.height; y++) for (let xx = 0; xx < c.width; xx++) { const i = (y * c.width + xx) * 4; if (Math.min(d[i], d[i + 1], d[i + 2]) < 225) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; } }
+        if (x1 < 0) { x0 = 0; y0 = 0; x1 = c.width - 1; y1 = c.height - 1; }
+        const p = 4; x0 = Math.max(0, x0 - p); y0 = Math.max(0, y0 - p); x1 = Math.min(c.width - 1, x1 + p); y1 = Math.min(c.height - 1, y1 + p);
+        const cw = x1 - x0 + 1, ch = y1 - y0 + 1, sc = Math.min(1, 480 / Math.max(cw, ch));
+        const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(cw * sc)); o.height = Math.max(1, Math.round(ch * sc));
+        const ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
+        resolve(o.toDataURL('image/png'));
+      } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
+    img.src = url;
+  });
+}
+
+function Switch({ on, onChange, label, hint }) {
+  return (
+    <button type="button" role="switch" aria-checked={on} onClick={() => onChange(!on)} className="flex w-full items-center gap-3 rounded-lg px-1 py-2 text-left">
+      <span className="min-w-0 flex-1"><span className="block text-sm font-medium">{label}</span>{hint && <span className="block text-xs text-[var(--muted)]">{hint}</span>}</span>
+      <span className={'relative inline-block h-6 w-11 shrink-0 rounded-full transition ' + (on ? 'bg-slate-900' : 'bg-slate-300')}><span className={'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all ' + (on ? 'left-[22px]' : 'left-0.5')} /></span>
+    </button>
+  );
+}
+
+function LogoModal({ deck, api, notify, onClose }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape' && !document.querySelector('[role="listbox"]')) { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  const brands = useMemo(() => {
+    const m = new Map();
+    deck.sales.forEach((s) => s.brands.forEach((b) => { const k = brandKey(b.name); if (!k) return; if (!m.has(k)) m.set(k, { key: k, name: String(b.name).trim(), sales: [] }); const e = m.get(k); if (!e.sales.includes(s.name)) e.sales.push(s.name); }));
+    return [...m.values()].sort((a, b) => a.name.localeCompare(b.name));
+  }, [deck.sales]);
+  const [sel, setSel] = useState(brands[0] ? brands[0].key : '');
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const cur = brands.find((b) => b.key === sel);
+  const custom = deck.logos && deck.logos[sel];
+  const shown = cur ? logoOf(cur.name, deck) : null;
+  const options = brands.map((b) => ({ key: b.key, label: (logoOf(b.name, deck) ? '✓ ' : '') + b.name + ' · ' + b.sales.join(', ') }));
+  const onFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f || !cur) return;
+    if (!/^image\//.test(f.type)) { notify('File harus berupa gambar', 'err'); return; }
+    if (f.size > 8 * 1024 * 1024) { notify('Gambar terlalu besar (maksimal 8 MB)', 'err'); return; }
+    setBusy(true);
+    try { api.setLogo(cur.key, await trimLogo(f)); notify('Logo ' + cur.name + ' disimpan'); } catch (er) { notify('Gambar tidak bisa dibaca', 'err'); }
+    setBusy(false);
+  };
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Logo brand" className="flex max-h-[92vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+          <div><h2 className="head m-0 text-base font-semibold">Logo brand</h2><p className="m-0 text-xs text-[var(--muted)]">Logo tampil di kartu brand pada slide dan export</p></div>
+          <button type="button" className="btn" onClick={onClose} autoFocus>Selesai</button>
+        </div>
+        <div className="overflow-y-auto p-5">
+          <div className="mb-4 rounded-xl border border-[var(--line)] px-3 py-1">
+            <Switch on={deck.logoOn !== false} onChange={(v) => api.setLogoOpt({ logoOn: v })} label="Tampilkan logo" hint="Matikan untuk menyembunyikan semua logo" />
+            <div className="border-t border-[var(--line)]" />
+            <Switch on={deck.nameOn !== false} onChange={(v) => api.setLogoOpt({ nameOn: v })} label="Tampilkan nama brand" hint="Brand tanpa logo tetap menampilkan nama" />
+          </div>
+          {brands.length === 0 ? <div className="text-sm text-[var(--muted)]">Belum ada brand.</div> : (
+            <>
+              <label className="lbl" htmlFor="lg-brand">Nama brand</label>
+              <Select id="lg-brand" value={sel} onChange={setSel} options={options} />
+              <div className="mt-3 flex h-24 items-center justify-center rounded-xl border border-dashed border-[var(--line)] bg-slate-100 p-3">
+                {shown ? <span className="flex max-w-full items-center rounded-[10px] bg-white px-3 py-2 shadow"><img src={shown} alt={cur.name} style={{ maxHeight: 56, maxWidth: '100%', objectFit: 'contain' }} /></span> : <span className="text-sm text-[var(--muted)]">Belum ada logo untuk {cur && cur.name}</span>}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+                <button type="button" className="btn btn-primary" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>{busy ? 'Memproses…' : shown ? 'Ganti logo' : 'Upload logo'}</button>
+                {custom && <button type="button" className="btn btn-danger" onClick={() => { api.setLogo(sel, null); notify('Logo kustom dihapus'); }}>Hapus logo</button>}
+              </div>
+              <p className="mb-0 mt-3 text-xs text-[var(--muted)]">Gambar dipangkas otomatis dari ruang putih di tepinya dan diperkecil. Disarankan PNG/JPG dengan latar putih atau transparan.</p>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Rentang bulan: hanya admin. Perubahan langsung dipakai semua slide sales, ringkasan, dan export. */
 function RangeModal({ deck, api, onClose }) {
   useEffect(() => {
@@ -1523,6 +1625,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const [showAct, setShowAct] = useState(false);
   const [showOrder, setShowOrder] = useState(false);
   const [showRange, setShowRange] = useState(false);
+  const [showLogo, setShowLogo] = useState(false);
   const [exporting, setExporting] = useState(null);
   const doExport = async () => {
     if (exporting) return;
@@ -1642,6 +1745,8 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     }),
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
+    setLogoOpt: (p) => setDeck((d) => ({ ...d, ...p })),
+    setLogo: (key, url) => setDeck((d) => { const logos = { ...(d.logos || {}) }; if (url) logos[key] = url; else delete logos[key]; return { ...d, logos }; }),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
     setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name: name.toUpperCase() } : x)) })),
     setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p, skip: false } } } })),
@@ -1795,6 +1900,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </Menu>}
           {isAdmin && <Menu icon={<MenuIcon />} label={<span className="sr-only sm:not-sr-only">Menu</span>} width={288}>
             <MenuItem title="Rentang bulan" hint={`${rangeText(deck)} · berlaku untuk semua slide`} onClick={() => setShowRange(true)} />
+            <MenuItem title="Logo brand" hint="Upload logo per brand, tampil/sembunyikan logo dan nama" onClick={() => setShowLogo(true)} />
             <MenuItem title="Atur urutan sales" hint="Ubah urutan slide sales dengan seret atau panah" onClick={() => setShowOrder(true)} />
             <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
           </Menu>}
@@ -1860,6 +1966,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </div>
         </div>
       )}
+      {showLogo && <LogoModal deck={deck} api={api} notify={notify} onClose={() => setShowLogo(false)} />}
       {showRange && <RangeModal deck={deck} api={api} onClose={() => setShowRange(false)} />}
       {showOrder && <OrderModal deck={deck} onReorder={reorderSales} onClose={() => setShowOrder(false)} />}
       {showAct && <ActivityModal deck={deck} getToken={getToken} onClose={() => setShowAct(false)} />}
