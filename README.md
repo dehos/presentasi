@@ -91,3 +91,6 @@ Halaman memuat `app.js` (hasil kompilasi `app.jsx`, sudah diperkecil) sehingga t
 
 ## Warna persen
 Persentase capaian (0–100%) diwarnai gradasi merah, oranye, hijau; tiap besaran persen punya warna sendiri (fungsi `pcol` di `app.jsx`). Di atas 100% tetap hijau penuh.
+
+## Aturan target
+Target sebuah brand pada satu bulan hanya dihitung dan ditampilkan jika omzet bulan itu sudah diisi. Omzet kosong berarti perhitungan belum selesai (target diabaikan, meski terisi). Omzet yang diisi 0 tetap dihitung (capaian 0%).

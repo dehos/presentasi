@@ -60,7 +60,7 @@ const cellOf = (sales, key, bid) => (sales.data && sales.data[key] && sales.data
 function statsOf(sales, key, bid, keys) {
   const c = cellOf(sales, key, bid);
   const hasPrev = !!keys && keys.includes(prevKey(key));
-  const total = toNum(c.total), target = toNum(c.target), prev = hasPrev ? toNum(cellOf(sales, prevKey(key), bid).total) : null;
+  const total = toNum(c.total), target = total != null ? toNum(c.target) : null, prev = hasPrev ? toNum(cellOf(sales, prevKey(key), bid).total) : null;
   return {
     total, target,
     pct: total != null && target ? (total / target) * 100 : null,
@@ -590,7 +590,7 @@ function ClosingSlide({ deck, ro, api }) {
 function summaryOf(sales, keys) {
   const months = keys.map((k) => {
     let t = 0, g = 0, has = false, hasT = false;
-    sales.brands.forEach((b) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) { t += tv; has = true; } if (gv != null) { g += gv; hasT = true; } });
+    sales.brands.forEach((b) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) { t += tv; has = true; if (gv != null) { g += gv; hasT = true; } } });
     return { k, total: has ? t : null, target: hasT ? g : null };
   });
   const sum = (a) => a.reduce((x, y) => x + (y || 0), 0);
@@ -600,7 +600,7 @@ function summaryOf(sales, keys) {
   const trend = last && prev && prev.total ? ((last.total - prev.total) / prev.total) * 100 : null;
   const brands = sales.brands.map((b) => {
     let t = 0, g = 0;
-    keys.forEach((k) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) t += tv; if (gv != null) g += gv; });
+    keys.forEach((k) => { const c = cellOf(sales, k, b.id), tv = toNum(c.total), gv = toNum(c.target); if (tv != null) { t += tv; if (gv != null) g += gv; } });
     return { id: b.id, name: b.name || 'Brand', total: t, target: g, pct: g ? (t / g) * 100 : null };
   });
   const ranked = brands.filter((b) => b.pct != null).sort((a, b) => b.pct - a.pct);
