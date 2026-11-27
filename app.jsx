@@ -598,13 +598,12 @@ function summaryOf(sales, keys) {
   const ranked = brands.filter((b) => b.pct != null).sort((a, b) => b.pct - a.pct);
   return { months, total, target, pct: target ? (total / target) * 100 : null, trend, last, prev, brands, ranked, any: filled.length > 0 };
 }
-function summaryLines(S, best, low) {
+function summaryLines(S) {
   const lines = [];
   if (!S.any) lines.push('Belum ada data penjualan yang diisi.');
   else {
     lines.push(S.pct != null ? `Total penjualan ${fmtCompact(S.total)} dari target ${fmtCompact(S.target)}, tercapai ${Math.round(S.pct)}%.` : `Total penjualan ${fmtCompact(S.total)} (target belum diisi).`);
     if (S.trend != null) lines.push(Math.abs(S.trend) < 0.05 ? `${BULAN[parseKey(S.last.k).m]} sama dengan ${BULAN[parseKey(S.prev.k).m]}.` : `${BULAN[parseKey(S.last.k).m]} ${S.trend > 0 ? 'naik' : 'turun'} ${fmt1(Math.abs(S.trend))}% dibanding ${BULAN[parseKey(S.prev.k).m]}.`);
-    if (best[0]) lines.push(`Brand terbaik ${best[0].name} (${Math.round(best[0].pct)}%)` + (low[0] ? `, perlu perhatian ${low[0].name} (${Math.round(low[0].pct)}%).` : '.'));
   }
   return lines;
 }
@@ -624,7 +623,7 @@ function SumList({ T, sem, title, rows, mk }) {
 }
 function CombinedSummary({ sales, keys, T, sem }) {
   const S = summaryOf(sales, keys), pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
-  const lines = summaryLines(S, S.ranked.slice(0, 1), []);
+  const lines = summaryLines(S);
   return (
     <div data-m="card-1" style={{ ...GLASS, ...blurOf(T), flex: '0 0 400px', boxSizing: 'border-box', background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 20px' }}>
       <div style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: 24, marginBottom: 8 }}>Kesimpulan</div>
@@ -649,8 +648,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
   const chartH = 190;
   const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
   const best = S.ranked.slice(0, 3);
-  const low = S.ranked.length > 3 ? S.ranked.slice(-Math.min(3, S.ranked.length - 3)).reverse() : [];
-  const lines = summaryLines(S, best, low);
+  const lines = summaryLines(S);
   const card = { ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '18px 22px', boxSizing: 'border-box' };
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
@@ -709,7 +707,6 @@ function SummarySlide({ sales, deck, n, total, pick }) {
           </div>
           <div style={{ fontSize: 19, lineHeight: 1.4 }}>{(S.any ? lines.slice(1) : lines).map((l, i) => <div key={i} style={{ marginBottom: 4 }}>{l}</div>)}</div>
           {best.length > 0 && <SumList T={T} sem={sem} mk="sum-best" title="Capaian tertinggi" rows={best} />}
-          {low.length > 0 && <SumList T={T} sem={sem} mk="sum-low" title="Perlu perhatian" rows={low} />}
         </div>
       </div>
 
