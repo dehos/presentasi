@@ -498,15 +498,16 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
                 {(() => {
                   const mo = deck && deck.logoOn === false ? null : monoOf(b.name, deck);
                   const lg = deck && deck.logoOn === false ? null : mo ? (sem.dk ? mo.l : mo.d) : logoOf(b.name, deck);
-                  const showName = !(deck && deck.nameOn === false) || !lg;
-                  return (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, minHeight: 44 }}>
-                  {lg && mo && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={lg} alt={b.name} style={{ width: 'auto', height: 'auto', maxHeight: showName ? 42 : 48, maxWidth: '100%', objectFit: 'contain', display: 'block', filter: sem.dk ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))' }} /></span>}
-                  {lg && !mo && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={lg} alt={b.name} style={{ maxHeight: showName ? 32 : 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
-                  {showName && <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: lg ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', ...(lg ? { lineHeight: 1.1, overflowWrap: 'anywhere' } : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }) }}>
-                    {b.name || 'Nama brand'}
-                  </Hit>}
-                </div>
+                  return lg ? (
+                    <div role="img" aria-label={b.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, minHeight: 48 }}>
+                      {mo
+                        ? <img src={lg} alt={b.name} style={{ width: 'auto', height: 'auto', maxHeight: 48, maxWidth: '80%', objectFit: 'contain', display: 'block', filter: sem.dk ? 'drop-shadow(0 2px 4px rgba(0,0,0,0.35))' : 'drop-shadow(0 2px 4px rgba(0,0,0,0.18))' }} />
+                        : <span style={{ maxWidth: '80%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={lg} alt={b.name} style={{ width: 'auto', height: 'auto', maxHeight: 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
+                    </div>
+                  ) : (
+                    <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: nb > 4 ? 22 : 28, marginBottom: 10, minHeight: 48, textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {b.name || 'Nama brand'}
+                    </Hit>
                   );
                 })()}
                 <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'center', gap: 10, height: chartH }}>
@@ -1486,9 +1487,7 @@ function LogoModal({ deck, api, notify, onClose }) {
         </div>
         <div className="overflow-y-auto p-5">
           <div className="mb-4 rounded-xl border border-[var(--line)] px-3 py-1">
-            <Switch on={deck.logoOn !== false} onChange={(v) => api.setLogoOpt({ logoOn: v })} label="Tampilkan logo" hint="Matikan untuk menyembunyikan semua logo" />
-            <div className="border-t border-[var(--line)]" />
-            <Switch on={deck.nameOn !== false} onChange={(v) => api.setLogoOpt({ nameOn: v })} label="Tampilkan nama brand" hint="Brand tanpa logo tetap menampilkan nama" />
+            <Switch on={deck.logoOn !== false} onChange={(v) => api.setLogoOpt({ logoOn: v })} label="Tampilkan logo" hint="Brand yang punya logo menampilkan logo saja (nama disembunyikan). Matikan untuk menampilkan nama." />
           </div>
           {brands.length === 0 ? <div className="text-sm text-[var(--muted)]">Belum ada brand.</div> : (
             <>
