@@ -94,3 +94,6 @@ Persentase capaian (0–100%) diwarnai gradasi merah, oranye, hijau; tiap besara
 
 ## Aturan target
 Target sebuah brand pada satu bulan hanya dihitung dan ditampilkan jika omzet bulan itu sudah diisi. Omzet kosong berarti perhitungan belum selesai (target diabaikan, meski terisi). Omzet yang diisi 0 tetap dihitung (capaian 0%).
+
+## Logo brand
+Logo brand ada di folder `logos/` dan dipetakan per nama brand (tanpa spasi/huruf besar-kecil) lewat `BRAND_LOGOS` di `app.jsx`. Logo tampil di kiri atas kartu brand (tinggi maks 40px, lebar maks 45%), nama brand tetap rata kanan. Brand tanpa logo tampil seperti biasa. Saat ini: DEKKSON, BELLEZZA, SOLID. Setelah mengubah `app.jsx`, buat ulang `app.js`.
