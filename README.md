@@ -88,3 +88,6 @@ Isi deck disimpan sebagai satu baris JSON di tabel `public.lp_deck` (id `utama`)
 Halaman memuat `app.js` (hasil kompilasi `app.jsx`, sudah diperkecil) sehingga tidak perlu Babel di browser.
 `app.jsx` tetap menjadi sumber; setelah mengubahnya, buat ulang `app.js` dengan esbuild
 (`esbuild app.jsx --outfile=app.js --minify --target=es2019 --format=iife --loader:.jsx=jsx`).
+
+## Warna persen
+Persentase capaian (0–100%) diwarnai gradasi merah, oranye, hijau; tiap besaran persen punya warna sendiri (fungsi `pcol` di `app.jsx`). Di atas 100% tetap hijau penuh.

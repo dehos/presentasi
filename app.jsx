@@ -251,9 +251,17 @@ function Ed({ value, onChange, ro, money, style, placeholder, label }) {
 const headFont = "'Space Grotesk', system-ui, sans-serif";
 
 const lum = (hex) => { const h = hex.replace('#', ''); const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.substr(i, 2), 16)); return (0.299 * r + 0.587 * g + 0.114 * b) / 255; };
-const semOf = (T) => (T.sem ? { ...T.sem, card: T.card } : lum(T.paper) < 0.5
+const semBase = (T) => (T.sem ? { ...T.sem, card: T.card } : lum(T.paper) < 0.5
   ? { good: '#4fd1a5', warn: '#f5b942', bad: '#ff8a7a', card: T.card || 'rgba(255,255,255,0.07)' }
   : { good: '#0f8a64', warn: '#b7791f', bad: '#d1453b', card: T.card || 'rgba(255,255,255,0.74)' });
+const semOf = (T) => ({ ...semBase(T), dk: lum(T.paper) < 0.5 });
+/* Warna persen 0-100%: gradasi merah, oranye, hijau; setiap besaran persen punya warna sendiri */
+const pcol = (v, sem) => {
+  const p = Math.max(0, Math.min(100, v)), h = p <= 50 ? (p / 50) * 30 : 30 + ((p - 50) / 50) * 105;
+  const sat = 78 / 100, l = (sem && sem.dk ? 62 : 37) / 100, a = sat * Math.min(l, 1 - l);
+  const f = (n) => { const k = (n + h / 30) % 12, c = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, '0'); };
+  return '#' + f(0) + f(8) + f(4);
+};
 const blurOf = (T) => (T.shadow ? { boxShadow: T.shadow } : T.blur ? { backdropFilter: `blur(${T.blur}px)`, WebkitBackdropFilter: `blur(${T.blur}px)`, boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), 0 10px 28px -12px rgba(0,0,0,0.55)' } : {});
 const NEU_IN = { border: 'none', boxShadow: 'inset 4px 4px 8px rgba(120,160,157,0.5), inset -4px -4px 8px rgba(255,255,255,0.95)' };
 const GLASS = { boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.5), 0 4px 10px -6px rgba(10,30,70,0.35)' };
@@ -300,18 +308,18 @@ function Deco({ T, kind, seed }) {
 
 function Pct({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
-  const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
+  const c = pcol(v, sem);
   return <span style={{ color: c, background: c + '26', borderRadius: 999, padding: small ? '1px 5px' : '2px 10px', fontWeight: 600, fontSize: small ? '0.86em' : undefined }}>{Math.round(v)}%</span>;
 }
 /* Capaian target: angka persen dengan bar progres tipis di bawahnya (penuh = 100% target; warna mengikuti ambang 80/100) */
 function BigPct({ x, sem, muted, fs = 22 }) {
   if (x.pct == null) return <div style={{ fontSize: 12, fontWeight: 600, color: muted, marginTop: 2, whiteSpace: 'nowrap' }}>{x.total > 0 ? 'Tanpa target' : '–'}</div>;
-  const c = x.pct >= 100 ? sem.good : x.pct >= 80 ? sem.warn : sem.bad;
+  const c = pcol(x.pct, sem);
   return <div style={{ fontSize: fs, fontWeight: 800, color: c, marginTop: 2, letterSpacing: '-0.02em' }}>{Math.round(x.pct)}%</div>;
 }
 function PctBar({ v, sem, muted, small }) {
   if (v == null) return <span style={{ color: muted }}>–</span>;
-  const c = v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad;
+  const c = pcol(v, sem);
   return (
     <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: small ? 2 : 3 }}>
       <span style={{ color: c, fontWeight: 700, fontSize: small ? '0.9em' : undefined, lineHeight: 1.1, textAlign: 'right' }}>{Math.round(v)}%</span>
@@ -410,7 +418,7 @@ function DenseGrid({ sales, keys, T, sem, pick, short, labW }) {
             {ultra ? (
               <div style={{ display: 'flex', gap: 2 }}>
                 {keys.map((k, i) => {
-                  const c = st[i].pct == null ? T.muted : st[i].pct >= 100 ? sem.good : st[i].pct >= 80 ? sem.warn : sem.bad;
+                  const c = st[i].pct == null ? T.muted : pcol(st[i].pct, sem);
                   const tr = st[i].trend, tc = tr == null ? T.muted : tr > 0.05 ? sem.good : tr < -0.05 ? sem.bad : T.muted;
                   return (
                     <Hit key={k} pick={pick} target={{ month: k, id: `v-${b.id}-${k}` }} label={`Isi ${b.name} ${BULAN[parseKey(k).m]}`}
@@ -622,7 +630,7 @@ function SumList({ T, sem, title, rows, mk }) {
   );
 }
 function CombinedSummary({ sales, keys, T, sem }) {
-  const S = summaryOf(sales, keys), pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
+  const S = summaryOf(sales, keys), pc = (v) => (v == null ? T.muted : pcol(v, sem));
   const lines = summaryLines(S);
   return (
     <div data-m="card-1" style={{ ...GLASS, ...blurOf(T), flex: '0 0 400px', boxSizing: 'border-box', background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '16px 20px' }}>
@@ -646,7 +654,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   const S = summaryOf(sales, keys);
   const chartH = 190;
-  const pc = (v) => (v == null ? T.muted : v >= 100 ? sem.good : v >= 80 ? sem.warn : sem.bad);
+  const pc = (v) => (v == null ? T.muted : pcol(v, sem));
   const best = S.ranked.slice(0, 3);
   const lines = summaryLines(S);
   const card = { ...GLASS, ...blurOf(T), background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: '18px 22px', boxSizing: 'border-box' };
@@ -1111,8 +1119,8 @@ function Panel({ item, deck, api, idx, count, onMove, onDelete, mk, setMk, onSav
                       </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-[var(--muted)]" aria-live="polite">
-                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/10"><span className="block h-full rounded-full bg-[#101828]" style={{ width: Math.min(100, pct || 0) + '%' }} /></span>
-                      <span className="w-40 shrink-0 text-right">{pct != null ? `Capaian ${pct}% dari target` : 'Isi total dan target'}</span>
+                      <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-black/10"><span className="block h-full rounded-full" style={{ width: Math.min(100, pct || 0) + '%', background: pcol(pct || 0, null) }} /></span>
+                      <span className="w-40 shrink-0 text-right">{pct != null ? <>Capaian <b style={{ color: pcol(pct, null) }}>{pct}%</b> dari target</> : 'Isi total dan target'}</span>
                     </div>
                     {!ro && (
                       <div className="flex items-center gap-2 border-t border-black/10 pt-3">
