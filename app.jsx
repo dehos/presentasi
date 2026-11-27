@@ -335,7 +335,7 @@ function Trend({ v, sem, muted, small }) {
   return <span style={{ color: up ? sem.good : down ? sem.bad : muted, fontWeight: 600, whiteSpace: 'nowrap', fontSize: small ? '0.9em' : undefined }}>{up ? (small ? '▲' : '▲ ') : down ? (small ? '▼' : '▼ ') : ''}{small ? Math.round(Math.abs(v)) : fmt1(Math.abs(v))}%</span>;
 }
 
-const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png' };
+const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
 const logoOf = (name) => BRAND_LOGOS[String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '')] || null;
 function Hit({ pick, target, style, label, children, m, mt }) {
   if (!pick) return <div data-m={m} data-mt={mt} style={style}>{children}</div>;
@@ -492,7 +492,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
             return (
               <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, minHeight: 44 }}>
-                  {logoOf(b.name) && <img src={logoOf(b.name)} alt={b.name} style={{ maxHeight: 40, maxWidth: '45%', objectFit: 'contain', display: 'block', flex: 'none' }} />}
+                  {logoOf(b.name) && <span style={{ flex: 'none', maxWidth: '48%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={logoOf(b.name)} alt={b.name} style={{ maxHeight: 32, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
                   <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: logoOf(b.name) ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {b.name || 'Nama brand'}
                   </Hit>
