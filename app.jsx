@@ -336,7 +336,9 @@ function Trend({ v, sem, muted, small }) {
 }
 
 const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
+const MONO_LOGOS = { inacloset: { d: 'logos/ina.png', l: 'logos/ina-light.png' } };
 const brandKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+const monoOf = (name, deck) => { const k = brandKey(name); if (deck && deck.logos && deck.logos[k]) return (deck.logosMono && deck.logosMono[k]) || null; return MONO_LOGOS[k] || null; };
 const logoOf = (name, deck) => { const k = brandKey(name); return (deck && deck.logos && deck.logos[k]) || BRAND_LOGOS[k] || null; };
 function Hit({ pick, target, style, label, children, m, mt }) {
   if (!pick) return <div data-m={m} data-mt={mt} style={style}>{children}</div>;
@@ -493,12 +495,14 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
             return (
               <div key={b.id} data-m={`card-${bi}`} style={{ ...GLASS, ...blurOf(T), flex: 1, minWidth: 0, background: sem.card, border: T.cardBorder || `1px solid ${T.grid}`, ...(T.cardTop ? { borderTop: T.cardTop } : {}), borderRadius: T.cardR, padding: nb > 3 ? '16px 12px' : '16px 18px' }}>
                 {(() => {
-                  const lg = deck && deck.logoOn === false ? null : logoOf(b.name, deck);
+                  const mo = deck && deck.logoOn === false ? null : monoOf(b.name, deck);
+                  const lg = deck && deck.logoOn === false ? null : mo ? (sem.dk ? mo.l : mo.d) : logoOf(b.name, deck);
                   const showName = !(deck && deck.nameOn === false) || !lg;
                   return (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, minHeight: 44 }}>
-                  {lg && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={lg} alt={b.name} style={{ maxHeight: showName ? 32 : 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
-                  {showName && <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: lg ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {lg && mo && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', display: 'flex', alignItems: 'center' }}><img src={lg} alt={b.name} style={{ maxHeight: showName ? 42 : 48, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
+                  {lg && !mo && <span style={{ flex: 'none', maxWidth: showName ? '48%' : '100%', boxSizing: 'border-box', background: '#ffffff', borderRadius: 10, padding: '4px 8px', display: 'flex', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.18)' }}><img src={lg} alt={b.name} style={{ maxHeight: showName ? 32 : 40, maxWidth: '100%', objectFit: 'contain', display: 'block' }} /></span>}
+                  {showName && <Hit pick={pick} target={{ id: `bn-${b.id}` }} label={`Ubah nama ${b.name}`} style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.nw || 600, fontSize: lg ? (nb > 4 ? 18 : 22) : (nb > 4 ? 22 : 28), textAlign: 'right', ...(lg ? { lineHeight: 1.1, overflowWrap: 'anywhere' } : { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }) }}>
                     {b.name || 'Nama brand'}
                   </Hit>}
                 </div>
@@ -1420,7 +1424,15 @@ function trimLogo(file) {
         const cw = x1 - x0 + 1, ch = y1 - y0 + 1, sc = Math.min(1, 480 / Math.max(cw, ch));
         const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(cw * sc)); o.height = Math.max(1, Math.round(ch * sc));
         const ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
-        resolve(o.toDataURL('image/png'));
+        const od = ox.getImageData(0, 0, o.width, o.height), px = od.data;
+        let mono = true, any = false;
+        for (let i = 0; i < px.length; i += 4) { const mx = Math.max(px[i], px[i + 1], px[i + 2]), mn = Math.min(px[i], px[i + 1], px[i + 2]); if (mn < 225) { any = true; if (mx - mn > 40 || mx > 140) { mono = false; break; } } }
+        let mo = null;
+        if (mono && any) {
+          const mk = (col) => { const t = document.createElement('canvas'); t.width = o.width; t.height = o.height; const tx = t.getContext('2d'), id = tx.createImageData(o.width, o.height); for (let i = 0; i < px.length; i += 4) { id.data[i] = id.data[i + 1] = id.data[i + 2] = col; id.data[i + 3] = Math.max(0, Math.min(255, Math.round((255 - Math.min(px[i], px[i + 1], px[i + 2])) * 1.05))); } tx.putImageData(id, 0, 0); return t.toDataURL('image/png'); };
+          mo = { d: mk(0), l: mk(255) };
+        }
+        resolve({ url: o.toDataURL('image/png'), mono: mo });
       } catch (e) { reject(e); } finally { URL.revokeObjectURL(url); }
     };
     img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
@@ -1453,15 +1465,15 @@ function LogoModal({ deck, api, notify, onClose }) {
   const fileRef = useRef(null);
   const cur = brands.find((b) => b.key === sel);
   const custom = deck.logos && deck.logos[sel];
-  const shown = cur ? logoOf(cur.name, deck) : null;
-  const options = brands.map((b) => ({ key: b.key, label: (logoOf(b.name, deck) ? '✓ ' : '') + b.name + ' · ' + b.sales.join(', ') }));
+  const shown = cur ? (monoOf(cur.name, deck) ? monoOf(cur.name, deck).d : logoOf(cur.name, deck)) : null;
+  const options = brands.map((b) => ({ key: b.key, label: (logoOf(b.name, deck) || monoOf(b.name, deck) ? '✓ ' : '') + b.name + ' · ' + b.sales.join(', ') }));
   const onFile = async (e) => {
     const f = e.target.files && e.target.files[0]; e.target.value = '';
     if (!f || !cur) return;
     if (!/^image\//.test(f.type)) { notify('File harus berupa gambar', 'err'); return; }
     if (f.size > 8 * 1024 * 1024) { notify('Gambar terlalu besar (maksimal 8 MB)', 'err'); return; }
     setBusy(true);
-    try { api.setLogo(cur.key, await trimLogo(f)); notify('Logo ' + cur.name + ' disimpan'); } catch (er) { notify('Gambar tidak bisa dibaca', 'err'); }
+    try { const r = await trimLogo(f); api.setLogo(cur.key, r.url, r.mono); notify('Logo ' + cur.name + ' disimpan'); } catch (er) { notify('Gambar tidak bisa dibaca', 'err'); }
     setBusy(false);
   };
   return (
@@ -1746,7 +1758,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
     setLogoOpt: (p) => setDeck((d) => ({ ...d, ...p })),
-    setLogo: (key, url) => setDeck((d) => { const logos = { ...(d.logos || {}) }; if (url) logos[key] = url; else delete logos[key]; return { ...d, logos }; }),
+    setLogo: (key, url, mono) => setDeck((d) => { const logos = { ...(d.logos || {}) }, lm = { ...(d.logosMono || {}) }; if (url) { logos[key] = url; if (mono) lm[key] = mono; else delete lm[key]; } else { delete logos[key]; delete lm[key]; } return { ...d, logos, logosMono: lm }; }),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
     setBrand: (sid, bid, name) => mapSales(sid, (s) => ({ ...s, brands: s.brands.map((x) => (x.id === bid ? { ...x, name: name.toUpperCase() } : x)) })),
     setCell: (sid, key, bid, p) => mapSales(sid, (s) => ({ ...s, data: { ...s.data, [key]: { ...(s.data[key] || {}), [bid]: { ...cellOf(s, key, bid), ...p, skip: false } } } })),
