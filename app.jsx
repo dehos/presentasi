@@ -336,7 +336,8 @@ function Trend({ v, sem, muted, small }) {
 }
 
 const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
-const MONO_LOGOS = { inacloset: { d: 'logos/ina.png', l: 'logos/ina-light.png' } };
+const MONO_LOGOS = Object.fromEntries(['dekkson', 'bellezza', 'solid', 'hemmen', 'smco', 'rinoks', 'ina'].map((n) => [n, { d: `logos/${n}-d.png`, l: `logos/${n}-l.png` }]));
+MONO_LOGOS.inacloset = MONO_LOGOS.ina; MONO_LOGOS.bellezzah = MONO_LOGOS.bellezza;
 const brandKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const monoOf = (name, deck) => { const k = brandKey(name); if (deck && deck.logos && deck.logos[k]) return (deck.logosMono && deck.logosMono[k]) || null; return MONO_LOGOS[k] || null; };
 const logoOf = (name, deck) => { const k = brandKey(name); return (deck && deck.logos && deck.logos[k]) || BRAND_LOGOS[k] || null; };
@@ -1425,11 +1426,11 @@ function trimLogo(file) {
         const o = document.createElement('canvas'); o.width = Math.max(1, Math.round(cw * sc)); o.height = Math.max(1, Math.round(ch * sc));
         const ox = o.getContext('2d'); ox.fillStyle = '#fff'; ox.fillRect(0, 0, o.width, o.height); ox.drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
         const od = ox.getImageData(0, 0, o.width, o.height), px = od.data;
-        let mono = true, any = false;
-        for (let i = 0; i < px.length; i += 4) { const mx = Math.max(px[i], px[i + 1], px[i + 2]), mn = Math.min(px[i], px[i + 1], px[i + 2]); if (mn < 225) { any = true; if (mx - mn > 40 || mx > 140) { mono = false; break; } } }
+        let any = false;
+        for (let i = 0; i < px.length; i += 4) if (Math.min(px[i], px[i + 1], px[i + 2]) < 225) { any = true; break; }
         let mo = null;
-        if (mono && any) {
-          const mk = (col) => { const t = document.createElement('canvas'); t.width = o.width; t.height = o.height; const tx = t.getContext('2d'), id = tx.createImageData(o.width, o.height); for (let i = 0; i < px.length; i += 4) { id.data[i] = id.data[i + 1] = id.data[i + 2] = col; id.data[i + 3] = Math.max(0, Math.min(255, Math.round((255 - Math.min(px[i], px[i + 1], px[i + 2])) * 1.05))); } tx.putImageData(id, 0, 0); return t.toDataURL('image/png'); };
+        if (any) {
+          const mk = (col) => { const t = document.createElement('canvas'); t.width = o.width; t.height = o.height; const tx = t.getContext('2d'), id = tx.createImageData(o.width, o.height); for (let i = 0; i < px.length; i += 4) { const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2]; id.data[i] = id.data[i + 1] = id.data[i + 2] = col; id.data[i + 3] = Math.max(0, Math.min(255, Math.round((235 - lum) * 2.6))); } tx.putImageData(id, 0, 0); return t.toDataURL('image/png'); };
           mo = { d: mk(0), l: mk(255) };
         }
         resolve({ url: o.toDataURL('image/png'), mono: mo });
