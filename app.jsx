@@ -676,6 +676,7 @@ function SummarySlide({ sales, deck, n, total, pick }) {
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
   const short = (k) => BULAN_PENDEK[parseKey(k).m] + (crossYear ? ' ' + String(parseKey(k).y).slice(2) : '');
   const S = summaryOf(sales, keys);
+  const photo = photoOf(sales, deck);
   const chartH = 190;
   const pc = (v) => (v == null ? T.muted : pcol(v, sem));
   const best = S.ranked.slice(0, 3);
@@ -684,9 +685,11 @@ function SummarySlide({ sales, deck, n, total, pick }) {
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="sales" seed={sales.id + 'k'} />
-      <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+      <div style={{ height: 100, position: 'relative', zIndex: photo ? 3 : 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
-        <LogoMark h={54} style={{ flex: 'none' }} />
+        {photo
+          ? <span style={{ flex: 'none', position: 'relative', width: 112, height: 54 }}><img src={photo} alt={sales.name} style={{ position: 'absolute', left: 0, top: -23, height: 140, width: 'auto', maxWidth: 150, pointerEvents: 'none', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }} /></span>
+          : <LogoMark h={54} style={{ flex: 'none' }} />}
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
