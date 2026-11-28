@@ -102,3 +102,6 @@ Logo brand ada di folder `logos/` dan dipetakan per nama brand (tanpa spasi/huru
 Menu > Logo brand: pilih nama brand (diambil dari semua slide sales), upload gambar (dipangkas dari ruang putih dan diperkecil otomatis di browser), lalu disimpan di data deck (`logos`). Logo kustom menggantikan logo bawaan di folder `logos/`; "Hapus logo" menghapus yang kustom. Saklar "Tampilkan logo" berlaku untuk semua kartu: brand yang punya logo menampilkan logo saja di tengah kartu (nama disembunyikan), brand tanpa logo menampilkan nama.
 
 Semua logo tampil tanpa latar dan tanpa warna asli (siluet): putih di tema gelap, hitam di tema terang. Setiap logo punya dua varian (`logos/<nama>-d.png` untuk terang, `-l.png` untuk gelap); logo yang diupload lewat menu dibuat otomatis di browser.
+
+### Menu admin: Foto sales
+Menu > Foto sales: pilih sales, upload foto. Latar dihapus otomatis di browser (hasil terbaik dari latar polos/gradasi atau PNG transparan), badan dimiringkan sedikit (9°), dipangkas, tepi bawah dipudarkan dan disimpan di data deck (`photos`). Foto tampil di pojok kanan atas slide sales; label periode bergeser ke kiri. Foto bawaan Toni ada di `photos/toni.png`. Saklar "Tampilkan foto" berlaku untuk semua slide.

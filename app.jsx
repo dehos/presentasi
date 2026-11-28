@@ -338,6 +338,8 @@ function Trend({ v, sem, muted, small }) {
 const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
 const MONO_LOGOS = Object.fromEntries(['dekkson', 'bellezza', 'solid', 'hemmen', 'smco', 'rinoks', 'ina'].map((n) => [n, { d: `logos/${n}-d.png`, l: `logos/${n}-l.png` }]));
 MONO_LOGOS.inacloset = MONO_LOGOS.ina; MONO_LOGOS.bellezzah = MONO_LOGOS.bellezza;
+const SALES_PHOTOS = { toni: 'photos/toni.png' };
+const photoOf = (sales, deck) => (deck && deck.photoOn === false) ? null : ((deck && deck.photos && deck.photos[sales.id]) || SALES_PHOTOS[String(sales.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')] || null);
 const brandKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const monoOf = (name, deck) => { const k = brandKey(name); if (deck && deck.logos && deck.logos[k]) return (deck.logosMono && deck.logosMono[k]) || null; return MONO_LOGOS[k] || null; };
 const logoOf = (name, deck) => { const k = brandKey(name); return (deck && deck.logos && deck.logos[k]) || BRAND_LOGOS[k] || null; };
@@ -467,6 +469,7 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
   const compact = nb > 3 || combined;
   const crossYear = parseKey(keys[0]).y !== parseKey(keys[keys.length - 1]).y;
   const dense = false;
+  const photo = photoOf(sales, deck);
   const chartH = keys.length <= 3 ? 215 : keys.length <= 4 ? 175 : 140;
   const rowH = keys.length <= 3 ? 42 : keys.length <= 4 ? 38 : 33;
   const rowFs = nb > 4 ? 14 : nb > 3 ? 15 : compact ? 16 : 17;
@@ -475,15 +478,16 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
   return (
     <div data-m="bg" style={{ width: W, height: H, background: T.bgImage || T.paper, color: T.ink, fontFamily: T.font || "'Inter', system-ui, sans-serif", position: 'relative', overflow: 'hidden', isolation: 'isolate' }}>
       <Deco T={T} kind="sales" seed={sales.id} />
-      <div style={{ height: 100, position: 'relative', zIndex: 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
+      <div style={{ height: 100, position: 'relative', zIndex: photo ? 3 : 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
         <LogoMark h={54} style={{ flex: 'none' }} />
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
-        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub }}>
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub, marginRight: photo ? 150 : 0 }}>
           {sublineOf(deck)}
         </Hit>
+        {photo && <img src={photo} alt={sales.name} style={{ position: 'absolute', right: 36, top: 0, height: 140, width: 'auto', pointerEvents: 'none', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }} />}
       </div>
 
       <div style={{ padding: '22px 48px 0' }}>
@@ -1409,6 +1413,100 @@ function OrderModal({ deck, onReorder, onClose }) {
   );
 }
 
+/* Foto sales: hanya admin. Latar dihapus (jika belum transparan), badan dimiringkan sedikit, dipangkas dan disimpan di deck.photos[idSales]. */
+function cutoutPhoto(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try {
+        const sc0 = Math.min(1, 720 / Math.max(img.naturalWidth, img.naturalHeight));
+        const w = Math.max(1, Math.round(img.naturalWidth * sc0)), h = Math.max(1, Math.round(img.naturalHeight * sc0));
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0, w, h);
+        const id = x.getImageData(0, 0, w, h), d = id.data;
+        let hasAlpha = false; for (let i = 3; i < d.length; i += 4) if (d[i] < 250) { hasAlpha = true; break; }
+        if (!hasAlpha) {
+          const bg = new Uint8Array(w * h), q = [];
+          const edge = (y, x0) => { let r = 0, g = 0, bl = 0; for (let i = 0; i < 3; i++) { const o = (y * w + x0 + i) * 4; r += d[o]; g += d[o + 1]; bl += d[o + 2]; } return [r / 3, g / 3, bl / 3]; };
+          const L = [], R = []; for (let y = 0; y < h; y++) { L.push(edge(y, 0)); R.push(edge(y, w - 3)); }
+          const near = (p) => { const y = (p / w) | 0, m = (p % w) < w / 2 ? L[y] : R[y], o = p * 4; return Math.abs(d[o] - m[0]) + Math.abs(d[o + 1] - m[1]) + Math.abs(d[o + 2] - m[2]) < 75; };
+          const push = (p) => { if (!bg[p] && near(p)) { bg[p] = 1; q.push(p); } };
+          for (let i = 0; i < w; i++) { push(i); push((h - 1) * w + i); }
+          for (let j = 0; j < h; j++) { push(j * w); push(j * w + w - 1); }
+          for (let k = 0; k < q.length; k++) { const p = q[k], px = p % w, py = (p / w) | 0; if (px > 0) push(p - 1); if (px < w - 1) push(p + 1); if (py > 0) push(p - w); if (py < h - 1) push(p + w); }
+          for (let p = 0; p < w * h; p++) if (bg[p]) d[p * 4 + 3] = 0;
+          x.putImageData(id, 0, 0);
+        }
+        let x0 = w, y0 = h, x1 = -1, y1 = -1; const d2 = x.getImageData(0, 0, w, h).data;
+        for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) if (d2[(y * w + xx) * 4 + 3] > 40) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        if (x1 < 0) throw new Error('kosong');
+        const cw = x1 - x0 + 1, ch = y1 - y0 + 1, ang = 9 * Math.PI / 180;
+        const ow = Math.ceil(cw * Math.cos(ang) + ch * Math.sin(ang)), oh = Math.ceil(ch * Math.cos(ang) + cw * Math.sin(ang));
+        const o = document.createElement('canvas'); o.width = ow; o.height = oh; const ox = o.getContext('2d');
+        ox.translate(ow / 2, oh / 2); ox.rotate(-ang); ox.drawImage(c, x0, y0, cw, ch, -cw / 2, -ch / 2, cw, ch);
+        const f = Math.min(1, 440 / oh), fw = Math.round(ow * f), fh = Math.round(oh * f);
+        const e = document.createElement('canvas'); e.width = fw; e.height = fh; const ex = e.getContext('2d'); ex.drawImage(o, 0, 0, fw, fh);
+        const g = ex.createLinearGradient(0, fh * 0.8, 0, fh); g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ex.globalCompositeOperation = 'destination-in'; ex.fillStyle = g; ex.fillRect(0, 0, fw, fh);
+        resolve(e.toDataURL('image/png'));
+      } catch (er) { reject(er); } finally { URL.revokeObjectURL(url); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('img')); };
+    img.src = url;
+  });
+}
+
+function PhotoModal({ deck, api, notify, onClose }) {
+  useEffect(() => {
+    const k = (e) => { if (e.key === 'Escape' && !document.querySelector('[role="listbox"]')) { e.stopPropagation(); onClose(); } };
+    window.addEventListener('keydown', k, true);
+    return () => window.removeEventListener('keydown', k, true);
+  }, [onClose]);
+  const [sel, setSel] = useState(deck.sales[0] ? deck.sales[0].id : '');
+  const [busy, setBusy] = useState(false);
+  const fileRef = useRef(null);
+  const on = { ...deck, photoOn: true };
+  const cur = deck.sales.find((s) => s.id === sel);
+  const custom = deck.photos && deck.photos[sel];
+  const shown = cur ? photoOf(cur, on) : null;
+  const options = deck.sales.map((s) => ({ key: s.id, label: (photoOf(s, on) ? '✓ ' : '') + s.name }));
+  const onFile = async (e) => {
+    const f = e.target.files && e.target.files[0]; e.target.value = '';
+    if (!f || !cur) return;
+    if (!/^image\//.test(f.type)) { notify('File harus berupa gambar', 'err'); return; }
+    if (f.size > 12 * 1024 * 1024) { notify('Gambar terlalu besar (maksimal 12 MB)', 'err'); return; }
+    setBusy(true);
+    try { api.setPhoto(cur.id, await cutoutPhoto(f)); notify('Foto ' + cur.name + ' disimpan'); } catch (er) { notify('Foto tidak bisa diproses', 'err'); }
+    setBusy(false);
+  };
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div role="dialog" aria-modal="true" aria-label="Foto sales" className="flex max-h-[92vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
+          <div><h2 className="head m-0 text-base font-semibold">Foto sales</h2><p className="m-0 text-xs text-[var(--muted)]">Tampil di pojok kanan atas slide sales</p></div>
+          <button type="button" className="btn" onClick={onClose} autoFocus>Selesai</button>
+        </div>
+        <div className="overflow-y-auto p-5">
+          <div className="mb-4 rounded-xl border border-[var(--line)] px-3 py-1">
+            <Switch on={deck.photoOn !== false} onChange={(v) => api.setLogoOpt({ photoOn: v })} label="Tampilkan foto" hint="Matikan untuk menyembunyikan semua foto sales" />
+          </div>
+          <label className="lbl" htmlFor="ph-sales">Nama sales</label>
+          <Select id="ph-sales" value={sel} onChange={setSel} options={options} />
+          <div className="mt-3 flex h-44 items-center justify-center rounded-xl border border-dashed border-[var(--line)] bg-slate-700 p-3">
+            {shown ? <img src={shown} alt={cur.name} style={{ maxHeight: '100%', maxWidth: '100%', objectFit: 'contain' }} /> : <span className="text-sm text-slate-300">Belum ada foto untuk {cur && cur.name}</span>}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
+            <button type="button" className="btn btn-primary" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>{busy ? 'Memproses…' : shown ? 'Ganti foto' : 'Upload foto'}</button>
+            {custom && <button type="button" className="btn btn-danger" onClick={() => { api.setPhoto(sel, null); notify('Foto kustom dihapus'); }}>Hapus foto</button>}
+          </div>
+          <p className="mb-0 mt-3 text-xs text-[var(--muted)]">Latar dihapus otomatis dan badan dimiringkan sedikit. Hasil terbaik dari foto berlatar polos atau PNG yang sudah transparan.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* Logo brand: hanya admin. Gambar diperkecil dan dipangkas di browser, disimpan di data deck per nama brand (deck.logos). */
 function trimLogo(file) {
   return new Promise((resolve, reject) => {
@@ -1638,6 +1736,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
   const [showOrder, setShowOrder] = useState(false);
   const [showRange, setShowRange] = useState(false);
   const [showLogo, setShowLogo] = useState(false);
+  const [showPhoto, setShowPhoto] = useState(false);
   const [exporting, setExporting] = useState(null);
   const doExport = async () => {
     if (exporting) return;
@@ -1757,6 +1856,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
     }),
     setCover: (p) => setDeck((d) => ({ ...d, cover: { ...d.cover, ...p } })),
     setClosing: (p) => setDeck((d) => ({ ...d, closing: { ...d.closing, ...p } })),
+    setPhoto: (sid, url) => setDeck((d) => { const photos = { ...(d.photos || {}) }; if (url) photos[sid] = url; else delete photos[sid]; return { ...d, photos }; }),
     setLogoOpt: (p) => setDeck((d) => ({ ...d, ...p })),
     setLogo: (key, url, mono) => setDeck((d) => { const logos = { ...(d.logos || {}) }, lm = { ...(d.logosMono || {}) }; if (url) { logos[key] = url; if (mono) lm[key] = mono; else delete lm[key]; } else { delete logos[key]; delete lm[key]; } return { ...d, logos, logosMono: lm }; }),
     setSales: (id, p) => mapSales(id, (s) => ({ ...s, ...p })),
@@ -1912,6 +2012,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </Menu>}
           {isAdmin && <Menu icon={<MenuIcon />} label={<span className="sr-only sm:not-sr-only">Menu</span>} width={288}>
             <MenuItem title="Rentang bulan" hint={`${rangeText(deck)} · berlaku untuk semua slide`} onClick={() => setShowRange(true)} />
+            <MenuItem title="Foto sales" hint="Upload foto per sales, tampil/sembunyikan" onClick={() => setShowPhoto(true)} />
             <MenuItem title="Logo brand" hint="Upload logo per brand, tampil/sembunyikan logo dan nama" onClick={() => setShowLogo(true)} />
             <MenuItem title="Atur urutan sales" hint="Ubah urutan slide sales dengan seret atau panah" onClick={() => setShowOrder(true)} />
             <MenuItem title="Riwayat dan progres" hint="Siapa yang masuk, apa yang diedit, dan progres omzet/target" onClick={() => setShowAct(true)} />
@@ -1978,6 +2079,7 @@ function Editor({ session, getToken, initialDeck, onLogout, notify }) {
           </div>
         </div>
       )}
+      {showPhoto && <PhotoModal deck={deck} api={api} notify={notify} onClose={() => setShowPhoto(false)} />}
       {showLogo && <LogoModal deck={deck} api={api} notify={notify} onClose={() => setShowLogo(false)} />}
       {showRange && <RangeModal deck={deck} api={api} onClose={() => setShowRange(false)} />}
       {showOrder && <OrderModal deck={deck} onReorder={reorderSales} onClose={() => setShowOrder(false)} />}
