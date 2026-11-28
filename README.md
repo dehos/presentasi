@@ -104,4 +104,4 @@ Menu > Logo brand: pilih nama brand (diambil dari semua slide sales), upload gam
 Semua logo tampil tanpa latar dan tanpa warna asli (siluet): putih di tema gelap, hitam di tema terang. Setiap logo punya dua varian (`logos/<nama>-d.png` untuk terang, `-l.png` untuk gelap); logo yang diupload lewat menu dibuat otomatis di browser.
 
 ### Menu admin: Foto sales
-Menu > Foto sales: pilih sales, upload foto. Latar dihapus otomatis di browser (hasil terbaik dari latar polos/gradasi atau PNG transparan), dipangkas, tepi bawah dipudarkan dan disimpan di data deck (`photos`). Foto tampil di pojok kanan atas slide sales; label periode bergeser ke kiri. Foto bawaan Toni ada di `photos/toni.png`. Saklar "Tampilkan foto" berlaku untuk semua slide.
+Menu > Foto sales: pilih sales, upload foto. Latar dihapus otomatis di browser (hasil terbaik dari latar polos/gradasi atau PNG transparan), dipangkas, tepi bawah dipudarkan dan disimpan di data deck (`photos`). Foto tampil di kiri atas slide sales, menggantikan logo perusahaan. Foto bawaan Toni ada di `photos/toni.png`. Saklar "Tampilkan foto" berlaku untuk semua slide.

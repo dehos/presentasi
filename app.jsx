@@ -480,14 +480,15 @@ function SalesSlide({ sales, deck, n, total, pick, page = 0, pages = 1, combined
       <Deco T={T} kind="sales" seed={sales.id} />
       <div style={{ height: 100, position: 'relative', zIndex: photo ? 3 : 0, color: T.headerFg, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 48px', gap: 32 }}>
         <div data-m="hdr" style={{ position: 'absolute', left: 0, top: 0, width: '100%', height: 100, boxSizing: 'border-box', background: T.header, borderBottom: T.hdrLine, zIndex: -1 }} />
-        <LogoMark h={54} style={{ flex: 'none' }} />
+        {photo
+          ? <span style={{ flex: 'none', position: 'relative', width: 112, height: 54 }}><img src={photo} alt={sales.name} style={{ position: 'absolute', left: 0, top: -23, height: 140, width: 'auto', maxWidth: 150, pointerEvents: 'none', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }} /></span>
+          : <LogoMark h={54} style={{ flex: 'none' }} />}
         <Hit m="title" mt="l" pick={pick} target={{ id: 's-name' }} label="Ubah nama sales" style={{ flex: 1, minWidth: 0, fontFamily: T.headFont || headFont, fontWeight: T.hw || 700, fontSize: 54, letterSpacing: '-0.02em' }}>
           {sales.name || 'Nama sales'}
         </Hit>
-        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub, marginRight: photo ? 150 : 0 }}>
+        <Hit m="sub" mt="r" pick={pick} target={{ id: 'g-sub' }} label="Ubah keterangan periode" style={{ width: 560, flex: 'none', textAlign: 'right', fontSize: 22, color: T.headerSub, }}>
           {sublineOf(deck)}
         </Hit>
-        {photo && <img src={photo} alt={sales.name} style={{ position: 'absolute', right: 36, top: 0, height: 140, width: 'auto', pointerEvents: 'none', filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.3))' }} />}
       </div>
 
       <div style={{ padding: '22px 48px 0' }}>
@@ -1483,7 +1484,7 @@ function PhotoModal({ deck, api, notify, onClose }) {
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/40 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div role="dialog" aria-modal="true" aria-label="Foto sales" className="flex max-h-[92vh] w-full max-w-md flex-col rounded-2xl bg-white shadow-xl ring-1 ring-black/5">
         <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-3">
-          <div><h2 className="head m-0 text-base font-semibold">Foto sales</h2><p className="m-0 text-xs text-[var(--muted)]">Tampil di pojok kanan atas slide sales</p></div>
+          <div><h2 className="head m-0 text-base font-semibold">Foto sales</h2><p className="m-0 text-xs text-[var(--muted)]">Tampil di kiri atas slide sales, menggantikan logo perusahaan</p></div>
           <button type="button" className="btn" onClick={onClose} autoFocus>Selesai</button>
         </div>
         <div className="overflow-y-auto p-5">
