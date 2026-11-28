@@ -338,7 +338,7 @@ function Trend({ v, sem, muted, small }) {
 const BRAND_LOGOS = { dekkson: 'logos/dekkson.png', bellezza: 'logos/bellezza.png', bellezzah: 'logos/bellezza.png', solid: 'logos/solid.png', hemmen: 'logos/hemmen.png', smco: 'logos/smco.png', rinoks: 'logos/rinoks.png' };
 const MONO_LOGOS = Object.fromEntries(['dekkson', 'bellezza', 'solid', 'hemmen', 'smco', 'rinoks', 'ina'].map((n) => [n, { d: `logos/${n}-d.png`, l: `logos/${n}-l.png` }]));
 MONO_LOGOS.inacloset = MONO_LOGOS.ina; MONO_LOGOS.bellezzah = MONO_LOGOS.bellezza;
-const SALES_PHOTOS = Object.fromEntries(['toni', 'indah', 'rifa', 'yeni', 'waida', 'tita', 'ardi', 'tyas', 'yoga', 'fuad', 'masr'].map((n) => [n, `photos/${n}.png`]));
+const SALES_PHOTOS = Object.fromEntries(['toni', 'indah', 'rifa', 'yeni', 'waida', 'tita', 'ardi', 'tyas', 'yoga', 'fuad', 'masr', 'mia'].map((n) => [n, `photos/${n}.png`]));
 const photoOf = (sales, deck) => (deck && deck.photoOn === false) ? null : ((deck && deck.photos && deck.photos[sales.id]) || SALES_PHOTOS[String(sales.name || '').toLowerCase().replace(/[^a-z0-9]/g, '')] || null);
 const brandKey = (name) => String(name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 const monoOf = (name, deck) => { const k = brandKey(name); if (deck && deck.logos && deck.logos[k]) return (deck.logosMono && deck.logosMono[k]) || null; return MONO_LOGOS[k] || null; };
