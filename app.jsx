@@ -1440,7 +1440,7 @@ function cutoutPhoto(file) {
         let x0 = w, y0 = h, x1 = -1, y1 = -1; const d2 = x.getImageData(0, 0, w, h).data;
         for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) if (d2[(y * w + xx) * 4 + 3] > 40) { if (xx < x0) x0 = xx; if (xx > x1) x1 = xx; if (y < y0) y0 = y; if (y > y1) y1 = y; }
         if (x1 < 0) throw new Error('kosong');
-        const cw = x1 - x0 + 1, ch = y1 - y0 + 1, ang = 9 * Math.PI / 180;
+        const cw = x1 - x0 + 1, ch = y1 - y0 + 1, ang = 0;
         const ow = Math.ceil(cw * Math.cos(ang) + ch * Math.sin(ang)), oh = Math.ceil(ch * Math.cos(ang) + cw * Math.sin(ang));
         const o = document.createElement('canvas'); o.width = ow; o.height = oh; const ox = o.getContext('2d');
         ox.translate(ow / 2, oh / 2); ox.rotate(-ang); ox.drawImage(c, x0, y0, cw, ch, -cw / 2, -ch / 2, cw, ch);
@@ -1500,7 +1500,7 @@ function PhotoModal({ deck, api, notify, onClose }) {
             <button type="button" className="btn btn-primary" disabled={busy} onClick={() => fileRef.current && fileRef.current.click()}>{busy ? 'Memproses…' : shown ? 'Ganti foto' : 'Upload foto'}</button>
             {custom && <button type="button" className="btn btn-danger" onClick={() => { api.setPhoto(sel, null); notify('Foto kustom dihapus'); }}>Hapus foto</button>}
           </div>
-          <p className="mb-0 mt-3 text-xs text-[var(--muted)]">Latar dihapus otomatis dan badan dimiringkan sedikit. Hasil terbaik dari foto berlatar polos atau PNG yang sudah transparan.</p>
+          <p className="mb-0 mt-3 text-xs text-[var(--muted)]">Latar dihapus otomatis dan foto dipangkas. Hasil terbaik dari foto berlatar polos atau PNG yang sudah transparan.</p>
         </div>
       </div>
     </div>
